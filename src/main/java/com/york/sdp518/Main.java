@@ -1,34 +1,38 @@
 package com.york.sdp518;
 
-import org.apache.maven.shared.invoker.DefaultInvocationRequest;
-import org.apache.maven.shared.invoker.DefaultInvoker;
-import org.apache.maven.shared.invoker.InvocationRequest;
-import org.apache.maven.shared.invoker.Invoker;
-import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 
 public class Main {
 
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
+    private static final String MAVEN_HOME = "MAVEN_HOME";
 
     public static void main(String[] args) {
+        doProcessing();
+//        Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
+//        Package pack = new Package("com", "com");
+//        Package pack2 = new Package("com.york", "york");
+//        pack.addPackage(pack2);
+//        session.save(pack);
+        Neo4jSessionFactory.getInstance().close();
+    }
+
+    private static void doProcessing() {
         VCSClient gitClient = new GitVCSClient();
 
         try {
 //            Git clone
-            URI destination = gitClient.clone("https://github.com/rtyley/small-test-repo.git");
+            URI destination = gitClient.clone("https://github.com/scootafew/ast.git");
             Path projectPath = Paths.get(destination);
 
 //            Maven get dependencies
 //            Invoker invoker = new DefaultInvoker();
-//            invoker.setMavenHome(new File("C:/Program Files/apache-maven-3.6.2"));
+//            invoker.setMavenHome(new File(System.getenv(MAVEN_HOME)));
 //
 //            InvocationRequest request = new DefaultInvocationRequest();
 //            request.setPomFile(projectPath.resolve("pom.xml").toFile());
@@ -42,6 +46,5 @@ public class Main {
         } catch (VCSClientException e) {
             logger.error(e.getMessage());
         }
-
     }
 }

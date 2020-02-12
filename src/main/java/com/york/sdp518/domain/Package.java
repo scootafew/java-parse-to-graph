@@ -41,6 +41,10 @@ public class Package extends Entity {
         this.classes.add(c);
     }
 
+    public Set<Class> getClasses() {
+        return classes;
+    }
+
     public Optional<Package> getSubPackage(String fqn) {
         return this.packages.stream()
                 .filter(p -> p.getName().equals(fqn))
@@ -64,6 +68,7 @@ public class Package extends Entity {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
+                .appendSuper(super.hashCode())
                 .append(packages)
                 .append(classes)
                 .toHashCode();

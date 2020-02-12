@@ -15,6 +15,14 @@
             <version>1.1.7</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.9</version>
+        </dependency>
+
+
         <!-- https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit -->
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
@@ -44,10 +52,10 @@
             <version>3.2.8</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-ogm-http-driver -->
+        <!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-ogm-bolt-driver -->
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-ogm-http-driver</artifactId>
+            <artifactId>neo4j-ogm-bolt-driver</artifactId>
             <version>3.2.8</version>
         </dependency>
 

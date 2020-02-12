@@ -1,5 +1,7 @@
 package com.york.sdp518.domain;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
 
@@ -29,5 +31,28 @@ public class Class extends Entity {
 
     public void setCalledMethods(Set<Method> calledMethods) {
         this.calledMethods = calledMethods;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Class aClass = (Class) o;
+
+        return new EqualsBuilder()
+                .append(declaredMethods, aClass.declaredMethods)
+                .append(calledMethods, aClass.calledMethods)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+                .appendSuper(super.hashCode())
+                .append(declaredMethods)
+                .append(calledMethods)
+                .toHashCode();
     }
 }

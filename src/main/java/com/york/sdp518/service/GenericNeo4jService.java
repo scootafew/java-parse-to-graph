@@ -5,8 +5,8 @@ import com.york.sdp518.domain.Entity;
 import org.neo4j.ogm.session.Session;
 
 public abstract class GenericNeo4jService<T extends Entity> implements Neo4jService<T> {
-    private static final int DEPTH_LIST = 0
-    private static final int DEPTH_ENTITY = 1
+    private static final int DEPTH_LIST = 0;
+    private static final int DEPTH_ENTITY = 1;
     protected Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
 
     @Override

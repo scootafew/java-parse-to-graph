@@ -13,19 +13,21 @@ import com.github.javaparser.symbolsolver.utils.SymbolSolverCollectionStrategy;
 import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
 import com.google.common.base.Strings;
-import com.york.sdp518.domain.Class;
 import com.york.sdp518.domain.Package;
 import com.york.sdp518.visitors.ClassOrInterfaceVisitor;
 import com.york.sdp518.visitors.MethodCallVisitor;
 import com.york.sdp518.visitors.MethodDeclarationVisitor;
 import com.york.sdp518.visitors.MethodReferenceVisitor;
 import com.york.sdp518.visitors.PackageVisitor;
+import org.neo4j.ogm.session.Session;
+import org.neo4j.ogm.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +45,7 @@ public class JavaProjectProcessor {
     private VoidVisitor<?> methodReferenceReporter = new MethodReferenceVisitor();
     private VoidVisitor<List<String>> importVisitor = new ImportCounter();
 
-    private VoidVisitor<Set<Package>> packageDeclarationVisitor = new PackageVisitor();
+    private VoidVisitor<List<String>> packageDeclarationVisitor = new PackageVisitor();
     private VoidVisitor<Package> classOrInterfaceVisitor = new ClassOrInterfaceVisitor();
 
     public JavaProjectProcessor(Path projectPath) {
@@ -71,13 +73,25 @@ public class JavaProjectProcessor {
 
     private void processCompilationUnit(CompilationUnit compilationUnit) {
         compilationUnit.getPrimaryTypeName().ifPresent(System.out::println);
-        System.out.println(compilationUnit);
-        Set<Package> packages = new HashSet<>();
-        packageDeclarationVisitor.visit(compilationUnit, packages);
-        Set<Class> classes = new HashSet<>();
-        classOrInterfaceVisitor.visit(compilationUnit, packages.stream().findAny().get());
+//        System.out.println(compilationUnit);
 
-        System.out.println(packages);
+        String fullyQualifiedName = processPackages(compilationUnit);
+
+        Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
+        Package p = new Package(fullyQualifiedName, fullyQualifiedName.substring(fullyQualifiedName.lastIndexOf(".")));
+        classOrInterfaceVisitor.visit(compilationUnit, p);
+
+        Package currentPackage = session.load(Package.class, fullyQualifiedName);
+        currentPackage.getClasses().addAll(p.getClasses());
+        session.save(currentPackage);
+
+
+//        List<String> packages = new ArrayList<>();
+//        packageDeclarationVisitor.visit(compilationUnit, packages);
+//        Set<Class> classes = new HashSet<>();
+//        classOrInterfaceVisitor.visit(compilationUnit, packages.stream().findAny().get());
+
+//        System.out.println(packages);
 
 //        System.out.println(Strings.repeat("=", 30) + "\n");
 //        printSectionTitle("Primary Types:");
@@ -92,6 +106,72 @@ public class JavaProjectProcessor {
 //        importVisitor.visit(compilationUnit, imports);
 //        printSectionTitle("Imports (" + imports.size() + "):");
 //        imports.forEach(System.out::println);
+    }
+
+    private String processPackages(CompilationUnit compilationUnit) {
+        List<String> packages = new ArrayList<>();
+        packageDeclarationVisitor.visit(compilationUnit, packages);
+
+        String fullyQualifiedPackageName = String.join(".", packages);
+
+        System.out.println(packages);
+        createPackageIfNotExists(packages, null);
+        return fullyQualifiedPackageName;
+    }
+
+    private void createPackageIfNotExists(List<String> hierarchy, String qualifier) {
+        if (hierarchy.isEmpty()) return ;
+
+        if (hierarchy.size() > 1) {
+            String currentName = hierarchy.remove(0);
+            String qualifiedName = buildQualifiedName(qualifier, currentName);
+            String nextName = hierarchy.get(0);
+            String qualifiedNextName = buildQualifiedName(qualifiedName, nextName);
+
+            Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
+            try (Transaction tx = session.beginTransaction()) {
+                Package currentPackage = session.load(Package.class, qualifiedName);
+
+                if (currentPackage == null) {
+                    currentPackage = new Package(qualifiedName, currentName);
+                }
+
+                Optional<Package> subPackage = currentPackage.getPackages().stream()
+                        .filter(p -> p.getFullyQualifiedName().equals(qualifiedNextName))
+                        .findFirst();
+                if (!subPackage.isPresent()) {
+                    Package newPackage = new Package(qualifiedNextName, nextName);
+                    System.out.println("Adding new package: " + qualifiedNextName);
+                    currentPackage.getPackages().add(newPackage);
+                }
+                tx.commit();
+                session.save(currentPackage);
+            }
+            createPackageIfNotExists(hierarchy, qualifiedName);
+        }
+    }
+
+    private String buildQualifiedName(String qualifier, String name) {
+        if (qualifier == null) {
+            return name;
+        }
+        return String.join(".", qualifier, name);
+    }
+
+    private Set<Package> addNestedPackages(Set<Package> packages, List<String> name) {
+        String current = name.remove(0);
+        Package currentPackage = packages.stream()
+                .filter(p -> p.getName().equals(current))
+                .findFirst()
+                .orElseGet(() -> {
+                    Package newPackage = new Package(current, current);
+                    packages.add(newPackage);
+                    return newPackage;
+                });
+        if (name.isEmpty()) {
+            return packages;
+        }
+        return addNestedPackages(currentPackage.getPackages(), name);
     }
 
     private void printSectionTitle(String title) {

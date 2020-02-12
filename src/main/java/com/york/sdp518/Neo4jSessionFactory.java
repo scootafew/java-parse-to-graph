@@ -23,4 +23,8 @@ public class Neo4jSessionFactory {
     public Session getNeo4jSession() {
         return sessionFactory.openSession();
     }
+
+    public void close() {
+        sessionFactory.close();
+    }
 }

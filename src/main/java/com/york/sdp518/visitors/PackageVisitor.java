@@ -10,14 +10,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class PackageVisitor extends VoidVisitorAdapter<Set<Package>> {
+public class PackageVisitor extends VoidVisitorAdapter<List<String>> {
 
     VoidVisitorAdapter<Set<Package>> nameVisitor = new VoidVisitorAdapter<Set<Package>>() {
         @Override
         public void visit(Name name, Set<Package> packages) {
             super.visit(name, packages);
-//            System.out.println(name.asString());
-//            System.out.println(name.getIdentifier());
             addNestedPackages(packages, new ArrayList<>(Arrays.asList(name.asString().split("\\."))));
         }
 
@@ -41,9 +39,10 @@ public class PackageVisitor extends VoidVisitorAdapter<Set<Package>> {
     };
 
     @Override
-    public void visit(PackageDeclaration pd, Set<Package> packages) {
-        super.visit(pd, packages);
-        nameVisitor.visit(pd, packages);
+    public void visit(PackageDeclaration pd, List<String> packageStructure) {
+        super.visit(pd, packageStructure);
+        List<String> packageList = Arrays.asList(pd.getName().asString().split("\\."));
+        packageStructure.addAll(packageList);
     }
 
 
