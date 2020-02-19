@@ -4,6 +4,8 @@ import com.york.sdp518.Neo4jSessionFactory;
 import com.york.sdp518.domain.Entity;
 import org.neo4j.ogm.session.Session;
 
+import java.util.Optional;
+
 public abstract class GenericNeo4jService<T extends Entity> implements Neo4jService<T> {
     private static final int DEPTH_LIST = 0;
     private static final int DEPTH_ENTITY = 1;
@@ -15,8 +17,8 @@ public abstract class GenericNeo4jService<T extends Entity> implements Neo4jServ
     }
 
     @Override
-    public T find(String id) {
-        return session.load(getEntityType(), id, DEPTH_ENTITY);
+    public Optional<T> find(String id) {
+        return Optional.ofNullable(session.load(getEntityType(), id, DEPTH_ENTITY));
     }
 
     @Override
@@ -27,7 +29,7 @@ public abstract class GenericNeo4jService<T extends Entity> implements Neo4jServ
     @Override
     public T createOrUpdate(T entity) {
         session.save(entity, DEPTH_ENTITY);
-        return find(entity.getFullyQualifiedName());
+        return find(entity.getFullyQualifiedName()).get();
     }
 
     abstract Class<T> getEntityType();

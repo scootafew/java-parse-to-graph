@@ -14,18 +14,18 @@ public class MethodVisitor<T extends Resolvable<ResolvedMethodDeclaration>> exte
     private static final String ANSI_RESET = "\u001B[0m";
     private static final String ANSI_RED = "\u001B[31m";
 
-    @Override
-    public void visit(MethodDeclaration md, Set<Method> methods) {
-        super.visit(md, methods);
-        try {
-            ResolvedMethodDeclaration rmd = md.resolve();
-            Method m = new Method(rmd.getQualifiedSignature(), rmd.getName());
-
-            methods.add(m);
-        } catch (Exception e) {
-            System.out.println(ANSI_RED + md.getNameAsString() + " : ERROR - " + e.getMessage() + ANSI_RESET);
-        }
-    }
+//    @Override
+//    public void visit(MethodDeclaration md, Set<Method> methods) {
+//        super.visit(md, methods);
+//        try {
+//            ResolvedMethodDeclaration rmd = md.resolve();
+//            Method m = new Method(rmd.getQualifiedSignature(), rmd.getName());
+//
+//            methods.add(m);
+//        } catch (Exception e) {
+//            System.out.println(ANSI_RED + md.getNameAsString() + " : ERROR - " + e.getMessage() + ANSI_RESET);
+//        }
+//    }
 
     protected Optional<ResolvedMethodDeclaration> resolve(T node) {
         try {
@@ -37,6 +37,11 @@ public class MethodVisitor<T extends Resolvable<ResolvedMethodDeclaration>> exte
     }
 
     protected Method transformToMethod(ResolvedMethodDeclaration dec) {
-        return new Method(dec.getQualifiedSignature(), dec.getName());
+        try {
+            return new Method(dec.getQualifiedSignature(), dec.getName());
+        } catch (Exception e) {
+            System.out.println(ANSI_RED + dec.toString() + " : ERROR - " + e.getMessage() + ANSI_RESET);
+        }
+        return new Method("unknown.package." + dec.getName(), dec.getName());
     }
 }

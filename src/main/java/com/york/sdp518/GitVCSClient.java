@@ -17,8 +17,8 @@ public class GitVCSClient implements VCSClient {
     private static final Logger logger = LoggerFactory.getLogger(GitVCSClient.class);
 
     // Only needed for cloning private repo in test
-    private static final String GIT_USERNAME = System.getenv("GIT_USERNAME");
-    private static final String GIT_PASSWORD = System.getenv("GIT_PASSWORD");
+    private static final String GIT_USERNAME = System.getProperty("GIT_USERNAME");
+    private static final String GIT_PASSWORD = System.getProperty("GIT_PASSWORD");
 
     // Monitor to print command progress to System.out
     private TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));

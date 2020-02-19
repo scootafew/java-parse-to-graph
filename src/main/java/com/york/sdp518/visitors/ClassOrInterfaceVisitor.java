@@ -31,8 +31,8 @@ public class ClassOrInterfaceVisitor extends VoidVisitorAdapter<Package> {
         methodCallVisitor.visit(classDeclaration, calledMethods);
         methodReferenceVisitor.visit(classDeclaration, calledMethods);
 
-        c.setDeclaredMethods(declaredMethods);
-        c.setCalledMethods(calledMethods);
+        c.addAllDeclaredMethods(declaredMethods);
+        c.addAllCalledMethods(calledMethods);
 
         p.addClass(c);
     }

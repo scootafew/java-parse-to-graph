@@ -15,9 +15,6 @@ import com.github.javaparser.utils.SourceRoot;
 import com.google.common.base.Strings;
 import com.york.sdp518.domain.Package;
 import com.york.sdp518.visitors.ClassOrInterfaceVisitor;
-import com.york.sdp518.visitors.MethodCallVisitor;
-import com.york.sdp518.visitors.MethodDeclarationVisitor;
-import com.york.sdp518.visitors.MethodReferenceVisitor;
 import com.york.sdp518.visitors.PackageVisitor;
 import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.transaction.Transaction;
@@ -27,8 +24,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -40,10 +37,6 @@ public class JavaProjectProcessor {
 
     private Path projectPath;
     private ProjectRoot projectRoot;
-    private VoidVisitor<?> methodNameVisitor = new MethodDeclarationVisitor();
-    private VoidVisitor<?> methodCallReporter = new MethodCallVisitor();
-    private VoidVisitor<?> methodReferenceReporter = new MethodReferenceVisitor();
-    private VoidVisitor<List<String>> importVisitor = new ImportCounter();
 
     private VoidVisitor<List<String>> packageDeclarationVisitor = new PackageVisitor();
     private VoidVisitor<Package> classOrInterfaceVisitor = new ClassOrInterfaceVisitor();
@@ -54,11 +47,18 @@ public class JavaProjectProcessor {
     }
 
     public void printMethods() {
-        this.projectRoot.getSourceRoots().forEach(this::processSourceRoot);
+        this.projectRoot.getSourceRoots().stream()
+                .peek(s -> System.out.println(s.getRoot().toString()))
+                .filter(this::isViableRoot)
+                .forEach(this::processSourceRoot);
+    }
+
+    private boolean isViableRoot(SourceRoot sourceRoot) {
+        return sourceRoot.getRoot().toString().endsWith("\\src\\main\\java");
     }
 
     private void processSourceRoot(SourceRoot sourceRoot) {
-        ParserConfiguration config = getParserConfiguration();
+        ParserConfiguration config = getParserConfiguration(sourceRoot);
         try {
             sourceRoot.setParserConfiguration(config).tryToParse().stream()
                     .map(ParseResult::getResult)
@@ -84,28 +84,6 @@ public class JavaProjectProcessor {
         Package currentPackage = session.load(Package.class, fullyQualifiedName);
         currentPackage.getClasses().addAll(p.getClasses());
         session.save(currentPackage);
-
-
-//        List<String> packages = new ArrayList<>();
-//        packageDeclarationVisitor.visit(compilationUnit, packages);
-//        Set<Class> classes = new HashSet<>();
-//        classOrInterfaceVisitor.visit(compilationUnit, packages.stream().findAny().get());
-
-//        System.out.println(packages);
-
-//        System.out.println(Strings.repeat("=", 30) + "\n");
-//        printSectionTitle("Primary Types:");
-//        printSectionTitle("Method Names:");
-//        methodNameVisitor.visit(compilationUnit, null);
-//        printSectionTitle("Method Calls:");
-//        methodCallReporter.visit(compilationUnit, null);
-//        printSectionTitle("Method References:");
-//        methodReferenceReporter.visit(compilationUnit, null);
-//
-//        List<String> imports = new ArrayList<>();
-//        importVisitor.visit(compilationUnit, imports);
-//        printSectionTitle("Imports (" + imports.size() + "):");
-//        imports.forEach(System.out::println);
     }
 
     private String processPackages(CompilationUnit compilationUnit) {
@@ -114,13 +92,21 @@ public class JavaProjectProcessor {
 
         String fullyQualifiedPackageName = String.join(".", packages);
 
-        System.out.println(packages);
-        createPackageIfNotExists(packages, null);
+        if (fullyQualifiedPackageName.isEmpty()) {
+            logger.warn("No package declaration found in file " + compilationUnit.getStorage().get().getFileName()
+                    + ", possible parsing error");
+        } else {
+            createPackageIfNotExists(packages);
+        }
+
+//        System.out.println(packages);
+//        createPackageIfNotExists(packages, null);
         return fullyQualifiedPackageName;
     }
 
+    // TODO Improve to search for packages in reverse order to improve efficiency
     private void createPackageIfNotExists(List<String> hierarchy, String qualifier) {
-        if (hierarchy.isEmpty()) return ;
+        if (hierarchy.isEmpty()) return;
 
         if (hierarchy.size() > 1) {
             String currentName = hierarchy.remove(0);
@@ -144,10 +130,48 @@ public class JavaProjectProcessor {
                     System.out.println("Adding new package: " + qualifiedNextName);
                     currentPackage.getPackages().add(newPackage);
                 }
-                tx.commit();
                 session.save(currentPackage);
+                tx.commit();
             }
             createPackageIfNotExists(hierarchy, qualifiedName);
+        }
+    }
+
+    // New method following package structure more efficiently
+    private void createPackageIfNotExists(List<String> packageHierarchy) {
+        String fullyQualifiedPackageName = buildQualifiedName(packageHierarchy);
+
+        Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
+        try (Transaction tx = session.beginTransaction()) {
+            Package currentPackage = session.load(Package.class, fullyQualifiedPackageName);
+
+            if (currentPackage == null) {
+                String currentPackageName = packageHierarchy.remove(packageHierarchy.size() - 1);
+                Package newPackage = new Package(fullyQualifiedPackageName, currentPackageName);
+                Package packageForCreation = getParentOrCreate(packageHierarchy, newPackage, session);
+
+                session.save(packageForCreation);
+                tx.commit();
+            }
+
+        }
+    }
+
+    private Package getParentOrCreate(List<String> packageHierarchy, Package subPackage, Session session) {
+        if (packageHierarchy.isEmpty()) {
+            return subPackage;
+        }
+
+        String fullyQualifiedPackageName = buildQualifiedName(packageHierarchy);
+        Package currentPackage = session.load(Package.class, fullyQualifiedPackageName);
+        if (currentPackage != null) {
+            currentPackage.getPackages().add(subPackage);
+            return currentPackage;
+        } else {
+            String currentPackageName = packageHierarchy.remove(packageHierarchy.size() - 1);
+            Package newPackage = new Package(fullyQualifiedPackageName, currentPackageName);
+            newPackage.getPackages().add(subPackage);
+            return getParentOrCreate(packageHierarchy, newPackage, session);
         }
     }
 
@@ -156,6 +180,10 @@ public class JavaProjectProcessor {
             return name;
         }
         return String.join(".", qualifier, name);
+    }
+
+    private String buildQualifiedName(List<String> packageHierarchy) {
+        return String.join(".", packageHierarchy);
     }
 
     private Set<Package> addNestedPackages(Set<Package> packages, List<String> name) {
@@ -188,10 +216,34 @@ public class JavaProjectProcessor {
 
         projectRoot.getSourceRoots().stream()
                 .map(SourceRoot::getRoot)
+                .peek(p -> System.out.println(p.toString()))
                 .map(JavaParserTypeSolver::new)
                 .forEach(typeSolver::add);
 
         try (Stream<Path> paths = Files.walk(projectPath.resolve("target/dependency"))) {
+            paths.filter(p -> p.toString().endsWith(".jar"))
+                    .map(this::getJarTypeSolver)
+                    .map(Optional::get)
+                    .forEach(typeSolver::add);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        config.setSymbolResolver(new JavaSymbolSolver(typeSolver));
+        return config;
+    }
+
+    private ParserConfiguration getParserConfiguration(SourceRoot sourceRoot) {
+        ParserConfiguration config = new ParserConfiguration();
+        config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_8);
+        CombinedTypeSolver typeSolver = new CombinedTypeSolver();
+        typeSolver.add(new ReflectionTypeSolver());
+        typeSolver.setExceptionHandler(CombinedTypeSolver.ExceptionHandlers.IGNORE_ALL);
+
+        typeSolver.add(new JavaParserTypeSolver(sourceRoot.getRoot()));
+
+        try (Stream<Path> paths = Files.walk(sourceRoot.getRoot().resolve("../../../target/dependency"))) {
             paths.filter(p -> p.toString().endsWith(".jar"))
                     .map(this::getJarTypeSolver)
                     .map(Optional::get)

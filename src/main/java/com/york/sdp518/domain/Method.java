@@ -5,6 +5,8 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 @NodeEntity
@@ -17,13 +19,19 @@ public class Method extends Entity {
     Set<Method> methodCalls;
 
     public Method() {
-
+        methodCalls = new HashSet<>();
     }
 
     public Method(String fullyQualifiedSignature, String name) {
+        this();
         setFullyQualifiedName(fullyQualifiedSignature);
         setName(name);
     }
+
+    public void addAllMethodCalls(Collection<Method> methods) {
+        methodCalls.addAll(methods);
+    }
+
 
     @Override
     public boolean equals(Object o) {
