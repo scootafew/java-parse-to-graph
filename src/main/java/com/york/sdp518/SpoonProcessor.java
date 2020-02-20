@@ -3,11 +3,16 @@ package com.york.sdp518;
 import com.york.sdp518.domain.Class;
 import com.york.sdp518.domain.Method;
 import com.york.sdp518.domain.Package;
+import com.york.sdp518.service.impl.MavenMetadataService;
+import com.york.sdp518.service.MetadataService;
+import com.york.sdp518.service.impl.MavenPluginService;
 import com.york.sdp518.spoonvisitors.CalledMethodsVisitor;
 import com.york.sdp518.spoonvisitors.OutsideMethodVisitor;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.transaction.Transaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
@@ -16,31 +21,59 @@ import spoon.reflect.declaration.CtType;
 
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SpoonProcessor {
 
+    private static final Logger logger = LoggerFactory.getLogger(SpoonProcessor.class);
     private Path projectPath;
 
     public SpoonProcessor(Path projectPath) {
         this.projectPath = projectPath;
     }
 
-    public void run() {
-        MavenLauncher launcher = new MavenLauncher(projectPath.toString(), MavenLauncher.SOURCE_TYPE.APP_SOURCE, true);
+    public void run() throws Exception {
+        logger.info("Processing project at {}", projectPath.toString());
+        MavenLauncher launcher = new MavenLauncher(projectPath.toString(), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         launcher.buildModel();
+
+        if (!classpathBuiltSuccessfully(launcher)) {
+            logger.warn("Could not build classpath");
+
+            // if can't build classpath, try setting version to latest version
+            String groupId = launcher.getPomFile().getModel().getGroupId();
+            String artifactId = launcher.getPomFile().getModel().getArtifactId();
+
+            MetadataService metadataService = new MavenMetadataService();
+            Optional<String> latestVersion = metadataService.getLatestVersion(groupId, artifactId);
+
+            if (!latestVersion.isPresent()) {
+                return;
+            }
+
+            MavenPluginService pluginService = new MavenPluginService();
+            pluginService.setVersion(launcher.getPomFile().toFile(), latestVersion.get());
+            launcher = new MavenLauncher(projectPath.toString(), MavenLauncher.SOURCE_TYPE.APP_SOURCE, true);
+            launcher.buildModel();
+        }
+
         CtModel model = launcher.getModel();
         System.out.println(model);
 
         processPackages(model.getAllPackages());
     }
 
+    private boolean classpathBuiltSuccessfully(MavenLauncher launcher) {
+        return launcher.getEnvironment().getSourceClasspath().length != 0;
+    }
+
     private void processPackages(Collection<CtPackage> packages) {
         // list all packages
         for(CtPackage p : packages) {
             if (!p.isUnnamedPackage()) {
-                System.out.println("\n====================================================");
-                System.out.println("Package: " + p.getQualifiedName());
+                logger.debug("\n====================================================");
+                logger.debug("Package: " + p.getQualifiedName());
                 createPackageIfNotExists(p.getQualifiedName());
                 processTypes(p.getTypes());
             }
@@ -51,7 +84,7 @@ public class SpoonProcessor {
     private void processTypes(Collection<CtType<?>> types) {
         // list all classes
         for(CtType<?> type : types) {
-            System.out.println("\nClass: " + type.getQualifiedName());
+            logger.debug("\nClass: " + type.getQualifiedName());
 
             Class clazz = new Class(type.getQualifiedName(), type.getSimpleName());
 
@@ -71,9 +104,10 @@ public class SpoonProcessor {
         }
     }
 
+    // TODO Check if this includes constructors
     private Method processMethod(CtMethod<?> method) {
         // list method
-        System.out.println("Method: " + buildFullyQualifiedSignature(method));
+        logger.debug("Method: " + buildFullyQualifiedSignature(method));
 
         Method declaredMethod = new Method(buildFullyQualifiedSignature(method), method.getSimpleName());
 

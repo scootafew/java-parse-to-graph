@@ -1,7 +1,8 @@
-package com.york.sdp518.service;
+package com.york.sdp518.service.impl;
 
 import com.york.sdp518.Neo4jSessionFactory;
 import com.york.sdp518.domain.Entity;
+import com.york.sdp518.service.Neo4jService;
 import org.neo4j.ogm.session.Session;
 
 import java.util.Optional;

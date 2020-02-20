@@ -10,6 +10,7 @@ import com.york.sdp518.domain.Package;
 import java.util.HashSet;
 import java.util.Set;
 
+@Deprecated
 public class ClassOrInterfaceVisitor extends VoidVisitorAdapter<Package> {
 
     private VoidVisitor<Set<Method>> methodDeclarationVisitor = new MethodDeclarationVisitor();

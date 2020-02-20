@@ -7,14 +7,13 @@ public class OutsideMethodVisitor extends CalledMethodsVisitor {
 
     @Override
     public <T> void visitCtMethod(CtMethod<T> m) {
-//        super.visitCtMethod(m);
-        System.out.println("Inside method " + m.getSimpleName());
+        // By not calling super we don't visit method calls inside methods, as these are processed with declaration
     }
+
 
     @Override
     public <T> void visitCtConstructor(CtConstructor<T> c) {
-//        super.visitCtMethod(m);
-        System.out.println("Inside constructor " + c.getSimpleName());
+        // By not calling super we don't visit method calls inside constructors, as these are processed with declaration
     }
 
 

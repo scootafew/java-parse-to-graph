@@ -1,11 +1,12 @@
 package com.york.sdp518.spoonvisitors;
 
 import com.york.sdp518.domain.Method;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spoon.reflect.code.CtExecutableReferenceExpression;
 import spoon.reflect.code.CtExpression;
-import spoon.reflect.declaration.CtElement;
-import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.reference.CtExecutableReference;
+import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.CtScanner;
 
 import java.util.HashSet;
@@ -13,6 +14,7 @@ import java.util.Set;
 
 public class CalledMethodsVisitor extends CtScanner {
 
+    private static final Logger logger = LoggerFactory.getLogger(CalledMethodsVisitor.class);
     private Set<Method> calledMethods;
 
     public CalledMethodsVisitor() {
@@ -21,14 +23,14 @@ public class CalledMethodsVisitor extends CtScanner {
 
     @Override
     public <T> void visitCtExecutableReference(CtExecutableReference<T> reference) {
-        System.out.println("ExecutableReference: " + getQualifiedSignature(reference));
+        logger.debug("Method Call: " + getQualifiedSignature(reference));
         calledMethods.add(createMethod(reference));
         super.visitCtExecutableReference(reference);
     }
 
     @Override
     public <T, E extends CtExpression<?>> void visitCtExecutableReferenceExpression(CtExecutableReferenceExpression<T, E> expression) {
-        System.out.println("ExecutableReferenceExpression: " + getQualifiedSignature(expression.getExecutable()));
+        logger.debug("Method Reference: " + getQualifiedSignature(expression.getExecutable()));
         calledMethods.add(createMethod(expression.getExecutable()));
         super.visitCtExecutableReferenceExpression(expression);
     }
@@ -38,13 +40,20 @@ public class CalledMethodsVisitor extends CtScanner {
     }
 
     private <T> String getQualifiedSignature(CtExecutableReference<T> reference) {
-        String qualifier = reference.getDeclaringType().getQualifiedName();
-        String signature = reference.getSignature();
+        CtTypeReference<?> dt = reference.getDeclaringType();
+        if (dt != null) {
+            String qualifier = reference.getDeclaringType().getQualifiedName();
+            String signature = reference.getSignature();
 
-        if (signature.startsWith(qualifier)) {
-            return signature;
+            if (signature.startsWith(qualifier)) {
+                return signature;
+            }
+            return qualifier + "." + signature;
+        } else {
+            logger.warn("No declaring type found for node {}", reference.toString());
+            logger.warn("Using signature {} instead", reference.getSignature());
         }
-        return qualifier + "." + signature;
+        return reference.getSignature();
     }
 
     private <T> Method createMethod(CtExecutableReference<T> reference) {

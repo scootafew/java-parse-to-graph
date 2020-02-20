@@ -5,6 +5,7 @@ import com.york.sdp518.domain.Method;
 
 import java.util.Set;
 
+@Deprecated
 public class MethodReferenceVisitor extends MethodVisitor<MethodReferenceExpr> {
 
     @Override
