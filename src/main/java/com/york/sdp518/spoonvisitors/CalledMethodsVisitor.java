@@ -23,14 +23,14 @@ public class CalledMethodsVisitor extends CtScanner {
 
     @Override
     public <T> void visitCtExecutableReference(CtExecutableReference<T> reference) {
-        logger.debug("Method Call: " + getQualifiedSignature(reference));
+        logger.debug("Method Call: {}", getQualifiedSignature(reference));
         calledMethods.add(createMethod(reference));
         super.visitCtExecutableReference(reference);
     }
 
     @Override
     public <T, E extends CtExpression<?>> void visitCtExecutableReferenceExpression(CtExecutableReferenceExpression<T, E> expression) {
-        logger.debug("Method Reference: " + getQualifiedSignature(expression.getExecutable()));
+        logger.debug("Method Reference: {}", getQualifiedSignature(expression.getExecutable()));
         calledMethods.add(createMethod(expression.getExecutable()));
         super.visitCtExecutableReferenceExpression(expression);
     }
@@ -50,7 +50,7 @@ public class CalledMethodsVisitor extends CtScanner {
             }
             return qualifier + "." + signature;
         } else {
-            logger.warn("No declaring type found for node {}", reference.toString());
+            logger.warn("No declaring type found for node {}", reference);
             logger.warn("Using signature {} instead", reference.getSignature());
         }
         return reference.getSignature();

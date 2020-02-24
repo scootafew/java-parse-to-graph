@@ -2,10 +2,14 @@ package com.york.sdp518;
 
 import java.io.File;
 
-public class Utils {
+public final class Utils {
+
+    private Utils() {
+
+    }
 
     public static String repoNameFromURI(String uri) {
-        return uri.substring(uri.lastIndexOf("/"), uri.lastIndexOf(".git"));
+        return uri.substring(uri.lastIndexOf('/') + 1, uri.lastIndexOf(".git"));
     }
 
     public static boolean isNonEmptyDirectory(File dir) {

@@ -49,7 +49,7 @@
         <dependency>
             <groupId>fr.inria.gforge.spoon</groupId>
             <artifactId>spoon-core</artifactId>
-            <version>8.1.0-beta-15</version>
+            <version>8.1.0-SNAPSHOT</version>
         </dependency>
 
 
@@ -114,11 +114,12 @@
         </plugins>
     </build>
 
+    <!--Remove when move back to Spoon release -->
     <repositories>
         <repository>
-            <id>jetbrains-release</id>
-            <name>Jetbrains IntelliJ Release</name>
-            <url>https://www.jetbrains.com/intellij-repository/releases</url>
+            <id>inria-snapshots</id>
+            <name>http://maven.inria.fr-snapshots</name>
+            <url>http://maven.inria.fr/artifactory/spoon-public-snapshot</url>
         </repository>
     </repositories>
 

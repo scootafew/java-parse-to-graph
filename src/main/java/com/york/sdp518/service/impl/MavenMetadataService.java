@@ -1,15 +1,19 @@
 package com.york.sdp518.service.impl;
 
+import com.york.sdp518.exception.MavenMetadataException;
 import com.york.sdp518.service.MetadataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import java.util.Optional;
+import java.io.IOException;
 
 public class MavenMetadataService implements MetadataService {
 
@@ -19,20 +23,23 @@ public class MavenMetadataService implements MetadataService {
     private static final String MAVEN_CENTRAL_URL_2 = "https://repo1.maven.org/maven2";
 
     private static final String MAVEN_METADATA_XML = "maven-metadata.xml";
+    private static final String PATH_TO_LATEST_VERSION = "/metadata/versioning/latest"; //NOSONAR Hardcoded path
 
     public MavenMetadataService() {
-
+        // NOSONAR
     }
 
-    public Optional<String> getLatestVersion(String groupId, String artifactId) {
+    public String getLatestVersion(String groupId, String artifactId) throws MavenMetadataException {
         String url = buildURL(groupId, artifactId);
         try {
-            return Optional.of(readLatestVersion(url));
-        } catch (Exception e) {
-            // TODO Might want to just let exception propagate here as will want to exit
-            logger.error("Could not get version from maven-metadata");
+            Document xmlDocument = getXmlFromUrl(url);
+            return readLatestVersionFromXml(xmlDocument);
+        } catch (IOException | SAXException | ParserConfigurationException e) {
+            String errorMessage = String.format("Could not retrieve %s from %s", MAVEN_METADATA_XML, MAVEN_CENTRAL_URL);
+            throw new MavenMetadataException(errorMessage, e);
+        } catch (XPathExpressionException e) {
+            throw new MavenMetadataException("Could not read latest version from " + MAVEN_METADATA_XML, e);
         }
-        return Optional.empty();
     }
 
     private String buildURL(String groupId, String artifactId) {
@@ -41,17 +48,18 @@ public class MavenMetadataService implements MetadataService {
     }
 
     // Credit https://stackoverflow.com/questions/26654210/read-tag-value-of-remote-xml-file-using-java
-    private String readLatestVersion(String url) throws Exception {
+    private Document getXmlFromUrl(String url) throws IOException, SAXException, ParserConfigurationException {
         DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+
+        // Disable XML External Entity (XXE) processing
+        builderFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+
         DocumentBuilder builder = builderFactory.newDocumentBuilder();
-        Document document = builder.parse(url);
+        return builder.parse(url);
+    }
 
+    private String readLatestVersionFromXml(Document document) throws XPathExpressionException {
         XPath xPath = XPathFactory.newInstance().newXPath();
-        String path = "/metadata/versioning/latest";
-        String latestVersion = xPath.compile(path).evaluate(document);
-
-        logger.info("Found latest version {}", latestVersion);
-
-        return latestVersion;
+        return xPath.compile(PATH_TO_LATEST_VERSION).evaluate(document);
     }
 }

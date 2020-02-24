@@ -1,8 +1,8 @@
 package com.york.sdp518.service;
 
-import java.util.Optional;
+import com.york.sdp518.exception.MavenMetadataException;
 
 public interface MetadataService {
 
-    Optional<String> getLatestVersion(String groupId, String artifactId);
+    String getLatestVersion(String groupId, String artifactId) throws MavenMetadataException;
 }
