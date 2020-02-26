@@ -1,13 +1,12 @@
 package com.york.sdp518;
 
-import org.neo4j.ogm.config.ClasspathConfigurationSource;
 import org.neo4j.ogm.config.Configuration;
 import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.session.SessionFactory;
 
 public class Neo4jSessionFactory {
     private static Configuration config = new Configuration.Builder()
-            .uri(System.getProperty("NEO4J_URI"))
+            .uri(Utils.getPropertyOrEnv("NEO4J_URI", true))
             .verifyConnection(true)
             .build();
     private static SessionFactory sessionFactory = new SessionFactory(config, "com.york.sdp518.domain");

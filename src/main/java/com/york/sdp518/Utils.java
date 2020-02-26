@@ -20,4 +20,17 @@ public final class Utils {
             return false;
         }
     }
+
+    public static String getPropertyOrEnv(String key, boolean required) {
+        String value;
+        value = System.getProperty(key);
+        if (value == null) {
+            value = System.getenv(key);
+        }
+        if (required && (value == null)) {
+            throw new RuntimeException("Required parameter not found");
+        }
+        return (value == null) ? "" : value;
+
+    }
 }

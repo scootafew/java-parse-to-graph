@@ -13,3 +13,8 @@ OPTIONAL MATCH (p)-[r]-()
 DELETE r,p
 
 MATCH (n) RETURN n
+
+### Docker commands
+docker build --tag=jp2g .
+
+docker run --link neo4j --net repo-miner_default --env LOG_LEVEL=INFO --env GIT_USERNAME=scootafew --env GIT_PASSWORD=XXX --env NEO4J_URI=bolt://neo4j:neo4j@neo4j:7687 --env M2_HOME="/usr/share/maven" jp2g "https://github.com/javaparser/javaparser.git"

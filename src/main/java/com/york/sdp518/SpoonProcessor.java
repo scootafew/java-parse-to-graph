@@ -18,7 +18,6 @@ import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import spoon.Launcher;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtMethod;
@@ -28,7 +27,6 @@ import spoon.support.compiler.SpoonPom;
 
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,19 +45,20 @@ public class SpoonProcessor {
 
         if (classpathNotBuiltSuccessfully(launcher)) {
             logger.warn("Could not build classpath, trying to retrieve latest version...");
-            attemptToBuildClasspath(launcher, projectPath);
+            attemptToBuildClasspath(launcher);
         }
 
         logger.info("Building model...");
         launcher.buildModel();
 
+        logger.info("Processing model...");
         processModel(repository, launcher.getPomFile());
 
         CtModel model = launcher.getModel();
         processPackages(model.getAllPackages());
     }
 
-    private void attemptToBuildClasspath(MavenLauncher launcher, Path path) throws JavaParseToGraphException {
+    private void attemptToBuildClasspath(MavenLauncher launcher) throws JavaParseToGraphException {
         // if can't build classpath, try setting version to latest version
         String groupId = launcher.getPomFile().getModel().getGroupId();
         String artifactId = launcher.getPomFile().getModel().getArtifactId();

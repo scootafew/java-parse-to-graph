@@ -5,14 +5,12 @@ import com.york.sdp518.exception.VCSClientException;
 import com.york.sdp518.service.VCSClient;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
 
@@ -21,8 +19,8 @@ public class GitVCSClient implements VCSClient {
     private static final Logger logger = LoggerFactory.getLogger(GitVCSClient.class);
 
     // TODO Remove - only needed for cloning private repo in test
-    private static final String GIT_USERNAME = System.getProperty("GIT_USERNAME");
-    private static final String GIT_PASSWORD = System.getProperty("GIT_PASSWORD");
+    private static final String GIT_USERNAME = Utils.getPropertyOrEnv("GIT_USERNAME", true);
+    private static final String GIT_PASSWORD = Utils.getPropertyOrEnv("GIT_PASSWORD", true);
 
     // Monitor to print command progress to System.out
     private TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));

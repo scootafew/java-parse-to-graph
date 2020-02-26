@@ -1,5 +1,6 @@
 package com.york.sdp518.service.impl;
 
+import com.york.sdp518.Utils;
 import com.york.sdp518.exception.MavenPluginInvocationException;
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.DefaultInvoker;
@@ -20,7 +21,7 @@ public class MavenPluginService {
 
     public MavenPluginService() {
         invoker = new DefaultInvoker();
-        invoker.setMavenHome(new File(System.getProperty(MAVEN_HOME)));
+        invoker.setMavenHome(new File(Utils.getPropertyOrEnv(MAVEN_HOME, true)));
     }
 
     public void setVersion(File pomFile, String version) throws MavenPluginInvocationException {
