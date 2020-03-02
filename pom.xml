@@ -49,7 +49,7 @@
         <dependency>
             <groupId>fr.inria.gforge.spoon</groupId>
             <artifactId>spoon-core</artifactId>
-            <version>8.1.0-20200226.085541-159</version>
+            <version>8.1.0-beta-17</version>
         </dependency>
 
 
@@ -71,7 +71,6 @@
 
     <build>
         <plugins>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -107,7 +106,6 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>libs/</classpathPrefix>
-                            <useUniqueVersions>false</useUniqueVersions> <!--Remove when move back to Spoon release -->
                             <mainClass>com.york.sdp518.Main</mainClass>
                         </manifest>
                     </archive>
@@ -115,15 +113,5 @@
             </plugin>
         </plugins>
     </build>
-
-    <!--Remove when move back to Spoon release -->
-    <repositories>
-        <repository>
-            <id>inria-snapshots</id>
-            <name>http://maven.inria.fr-snapshots</name>
-            <url>http://maven.inria.fr/artifactory/spoon-public-snapshot</url>
-        </repository>
-    </repositories>
-
     
 </project>
