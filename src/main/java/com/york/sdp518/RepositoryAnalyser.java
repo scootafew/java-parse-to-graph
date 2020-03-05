@@ -34,7 +34,7 @@ public class RepositoryAnalyser {
         // Process with spoon
         try {
             SpoonProcessor processor = new SpoonProcessor();
-            processor.process(projectDirectory, "repository");
+            processor.process(projectDirectory);
             Set<Artifact> artifacts = processor.getProcessedArtifacts();
 
             repository.addAllArtifacts(artifacts);

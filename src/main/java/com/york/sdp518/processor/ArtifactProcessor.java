@@ -24,7 +24,7 @@ public class ArtifactProcessor {
         return artifacts;
     }
 
-    private Stream<Model> getModels(SpoonPom spoonPom) {
+    public Stream<Model> getModels(SpoonPom spoonPom) {
         if (spoonPom.getModules().isEmpty()) {
             return Stream.of(spoonPom.getModel());
         }

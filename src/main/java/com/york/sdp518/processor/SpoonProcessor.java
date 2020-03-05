@@ -12,7 +12,9 @@ import org.slf4j.LoggerFactory;
 import spoon.MavenLauncher;
 import spoon.reflect.CtModel;
 
+import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 
 public class SpoonProcessor {
@@ -28,11 +30,11 @@ public class SpoonProcessor {
         this.packageProcessor = new PackageProcessor();
     }
 
-    public void process(Path projectPath, String type) throws JavaParseToGraphException {
+    public void process(Path projectPath) throws JavaParseToGraphException {
         logger.info("Processing project in directory {}", projectPath);
         MavenLauncher launcher = new MavenLauncher(projectPath.toString(), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
 
-        if (classpathNotBuiltSuccessfully(launcher) && type.equals("repository")) { // TODO fix once PR merged
+        if (classpathNotBuiltSuccessfully(launcher)) {
             logger.warn("Could not build classpath, trying to retrieve latest version...");
             attemptToBuildClasspath(launcher);
         }
@@ -71,8 +73,19 @@ public class SpoonProcessor {
         }
     }
 
+    /**
+     * Expect temp classpath files to have been generated for all modules
+     * @param launcher
+     * @return
+     */
     private boolean classpathNotBuiltSuccessfully(MavenLauncher launcher) {
-        return launcher.getEnvironment().getSourceClasspath().length == 0;
+        List<File> tempFiles = launcher.getPomFile().getClasspathTmpFiles("spoon.classpath-app.tmp");
+        List<File> tempAppFiles = launcher.getPomFile().getClasspathTmpFiles("spoon.classpath.tmp");
+
+        int tempFileCount = tempFiles.size() + tempAppFiles.size();
+        long moduleCount = artifactProcessor.getModels(launcher.getPomFile()).count();
+        logger.info("{} temp files generated for {} modules", tempFileCount, moduleCount);
+        return tempFileCount != moduleCount;
     }
 
     private String getGroupId(Model model) {

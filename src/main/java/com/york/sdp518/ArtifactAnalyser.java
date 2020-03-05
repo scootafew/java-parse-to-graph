@@ -32,7 +32,7 @@ public class ArtifactAnalyser {
 
             // Process with spoon
             SpoonProcessor processor = new SpoonProcessor();
-            processor.process(sourcesPath, "artifact");
+            processor.process(sourcesPath);
         } finally {
             Neo4jSessionFactory.getInstance().close();
         }
