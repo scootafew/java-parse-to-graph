@@ -19,8 +19,8 @@ public class GitVCSClient implements VCSClient {
     private static final Logger logger = LoggerFactory.getLogger(GitVCSClient.class);
 
     // TODO Remove - only needed for cloning private repo in test
-    private static final String GIT_USERNAME = Utils.getPropertyOrEnv("GIT_USERNAME", true);
-    private static final String GIT_PASSWORD = Utils.getPropertyOrEnv("GIT_PASSWORD", true);
+//    private static final String GIT_USERNAME = Utils.getPropertyOrEnv("GIT_USERNAME", true);
+//    private static final String GIT_PASSWORD = Utils.getPropertyOrEnv("GIT_PASSWORD", true);
 
     // Monitor to print command progress to System.out
     private TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
@@ -38,7 +38,7 @@ public class GitVCSClient implements VCSClient {
             Git.cloneRepository().setProgressMonitor(consoleProgressMonitor)
                     .setDirectory(destination)
                     .setURI(uri)
-                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider(GIT_USERNAME, GIT_PASSWORD))
+//                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider(GIT_USERNAME, GIT_PASSWORD))
                     .call();
 
             URI projectPath = destination.toURI();

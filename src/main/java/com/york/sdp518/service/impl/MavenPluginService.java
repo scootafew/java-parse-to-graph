@@ -10,8 +10,10 @@ import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 public class MavenPluginService {
 
@@ -26,15 +28,72 @@ public class MavenPluginService {
 
     public void setVersion(File pomFile, String version) throws MavenPluginInvocationException {
         List<String> goal = Collections.singletonList("versions:set -DprocessAllModules=true -DnewVersion=" + version);
-        executeGoals(pomFile, goal);
+        executeGoals(goal, pomFile);
     }
 
-    private void executeGoals(File pomFile, List<String> goals) throws MavenPluginInvocationException {
-        // Maven get dependencies
+    public void downloadAndCopyArtifactResources(String artifact, Path dest) throws MavenPluginInvocationException {
+        downloadArtifactSources(artifact);
+        copyArtifactPom(artifact, dest);
+        copyArtifactSources(artifact, dest);
+    }
+
+    public void downloadArtifactSources(String artifact) throws MavenPluginInvocationException {
+        List<String> goal = Collections.singletonList("dependency:get");
+        Properties properties = new Properties();
+        properties.setProperty("artifact", artifact + ":jar:sources");
+
+        executeGoals(goal, properties);
+    }
+
+    public void copyArtifactPom(String artifact, Path dest) throws MavenPluginInvocationException {
+        List<String> goal = Collections.singletonList("dependency:copy");
+        Properties properties = new Properties();
+        properties.setProperty("artifact", artifact + ":pom");
+        properties.setProperty("outputDirectory", dest.toString());
+
+        executeGoals(goal, properties);
+    }
+
+    public void copyArtifactSources(String artifact, Path dest) throws MavenPluginInvocationException {
+        List<String> goal = Collections.singletonList("dependency:copy");
+        Properties properties = new Properties();
+        properties.setProperty("artifact", artifact + ":jar:sources");
+        properties.setProperty("outputDirectory", dest.toString());
+
+        executeGoals(goal, properties);
+    }
+
+    public void buildClasspath(File pomFile) throws MavenPluginInvocationException {
+        List<String> goal = Collections.singletonList("dependency:build-classpath");
+        Properties properties = new Properties();
+        properties.setProperty("includeScope", "runtime");
+
+        executeGoals(goal, properties);
+    }
+
+    private void executeGoals(List<String> goals, File pomFile) throws MavenPluginInvocationException {
+        executeGoals(goals, null, pomFile);
+    }
+
+    private void executeGoals(List<String> goals, Properties properties) throws MavenPluginInvocationException {
+        executeGoals(goals, properties,null);
+    }
+
+    private void executeGoals(List<String> goals, Properties properties, File pomFile) throws MavenPluginInvocationException {
         InvocationRequest request = new DefaultInvocationRequest();
-        request.setPomFile(pomFile);
+        if (pomFile != null) {
+            request.setPomFile(pomFile);
+        }
+        if (properties != null) {
+            request.setProperties(properties);
+        }
+        request.setBatchMode(true);
         request.setGoals(goals);
 
+        invoke(request);
+    }
+
+    private void invoke(InvocationRequest request) throws MavenPluginInvocationException {
         try {
             InvocationResult invocationResult = invoker.execute(request);
             if (invocationResult.getExitCode() != 0) {

@@ -1,15 +1,18 @@
 package com.york.sdp518;
 
+import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.domain.Repository;
 import com.york.sdp518.exception.JavaParseToGraphException;
+import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.VCSClient;
-import com.york.sdp518.service.impl.GitVCSClient;
+import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 
 public class RepositoryAnalyser {
 
@@ -17,8 +20,8 @@ public class RepositoryAnalyser {
 
     VCSClient vcsClient;
 
-    public RepositoryAnalyser() {
-        this.vcsClient = new GitVCSClient();
+    public RepositoryAnalyser(VCSClient vcsClient) {
+        this.vcsClient = vcsClient;
     }
 
     public void analyseRepository(String uri) throws JavaParseToGraphException {
@@ -29,7 +32,17 @@ public class RepositoryAnalyser {
         Repository repository = new Repository(uri, Utils.repoNameFromURI(uri));
 
         // Process with spoon
-        SpoonProcessor processor = new SpoonProcessor();
-        processor.process(repository, projectDirectory);
+        try {
+            SpoonProcessor processor = new SpoonProcessor();
+            processor.process(projectDirectory, "repository");
+            Set<Artifact> artifacts = processor.getProcessedArtifacts();
+
+            repository.addAllArtifacts(artifacts);
+            Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
+            session.save(repository);
+        } finally {
+            Neo4jSessionFactory.getInstance().close();
+        }
+
     }
 }
