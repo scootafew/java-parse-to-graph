@@ -1,10 +1,13 @@
 package com.york.sdp518;
 
+import com.york.sdp518.domain.Artifact;
+import com.york.sdp518.domain.Repository;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.exception.PomFileException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.impl.MavenPluginService;
 import com.york.sdp518.util.PomModelUtils;
+import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,13 +26,21 @@ public class ArtifactAnalyser {
         this.mavenService = new MavenPluginService();
     }
 
-    public void analyseArtifact(String artifact) throws JavaParseToGraphException {
+    public void analyseArtifact(String artifactFqn) throws JavaParseToGraphException {
         try {
-            Path sourcesPath = getSources(artifact);
+            // Check if repository has already been processed
+            Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
+            Artifact artifact = neo4jSession.load(Artifact.class, artifactFqn);
+            if (artifact == null) {
+                Path sourcesPath = getSources(artifactFqn);
 
-            // Process with spoon
-            SpoonProcessor processor = new SpoonProcessor();
-            processor.process(sourcesPath, getVersionFromArtifact(artifact));
+                // Process with spoon
+                SpoonProcessor processor = new SpoonProcessor();
+                processor.process(sourcesPath, getVersionFromArtifact(artifactFqn));
+            } else {
+                logger.info("Artifact has already been processed, exiting...");
+            }
+
         } finally {
             Neo4jSessionFactory.getInstance().close();
         }

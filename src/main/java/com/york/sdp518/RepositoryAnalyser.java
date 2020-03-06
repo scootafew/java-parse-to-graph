@@ -3,6 +3,7 @@ package com.york.sdp518;
 import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.domain.Repository;
 import com.york.sdp518.exception.JavaParseToGraphException;
+import com.york.sdp518.exception.MavenMetadataException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.VCSClient;
 import com.york.sdp518.service.impl.MavenMetadataService;
@@ -33,26 +34,39 @@ public class RepositoryAnalyser {
     }
 
     public void analyseRepository(String uri) throws JavaParseToGraphException {
+        // TODO Check version as well, might want to use flag instead and create repo first in db to account for partial parsing
+        // Check if repository has already been processed
+        try {
+            Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
+            Repository repo = neo4jSession.load(Repository.class, uri);
+            if (repo == null) {
+                cloneAndProcess(uri);
+            } else {
+                logger.info("Repository has already been processed, exiting...");
+                // TODO Throw new AlreadyProcessedException ? Probably not as not an error state but should we measure
+            }
+        } finally {
+            Neo4jSessionFactory.getInstance().close();
+        }
+
+    }
+
+    private void cloneAndProcess(String uri) throws JavaParseToGraphException {
         // Git clone
         File cloneDestination = vcsClient.clone(uri);
         Path projectDirectory = Paths.get(cloneDestination.toURI()).normalize();
 
+        Repository repository = new Repository(uri, Utils.repoNameFromURI(uri));
         String version = checkVersionAlignment(projectDirectory);
 
-        Repository repository = new Repository(uri, Utils.repoNameFromURI(uri));
-
         // Process with spoon
-        try {
-            SpoonProcessor processor = new SpoonProcessor();
-            processor.process(projectDirectory, version);
-            Set<Artifact> artifacts = processor.getProcessedArtifacts();
+        SpoonProcessor processor = new SpoonProcessor();
+        processor.process(projectDirectory, version);
+        Set<Artifact> artifacts = processor.getProcessedArtifacts();
 
-            repository.addAllArtifacts(artifacts);
-            Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
-            session.save(repository);
-        } finally {
-            Neo4jSessionFactory.getInstance().close();
-        }
+        repository.addAllArtifacts(artifacts);
+        Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
+        session.save(repository);
     }
 
     private String checkVersionAlignment(Path projectPath) throws JavaParseToGraphException {
@@ -63,14 +77,21 @@ public class RepositoryAnalyser {
         String artifactId = pomModel.getArtifactId();
 
         String localProjectVersion = mavenPluginService.getProjectVersion(pomFile);
-        String latestVersion = mavenMetadataService.getLatestVersion(groupId, artifactId);
 
-        logger.info("Local project version is: {}, latest version is {}", localProjectVersion, latestVersion);
+        // If project is on maven central, modules may depend on each other so ensure versioning is consistent
+        try {
+            String latestVersion = mavenMetadataService.getLatestVersion(groupId, artifactId);
 
-        if (!localProjectVersion.equals(latestVersion)) {
-            mavenPluginService.setVersion(pomFile, latestVersion);
-            return latestVersion;
+            logger.info("Local project version is: {}, latest version is {}", localProjectVersion, latestVersion);
+
+            if (!localProjectVersion.equals(latestVersion)) {
+                mavenPluginService.setVersion(pomFile, latestVersion);
+                return latestVersion;
+            }
+        } catch (MavenMetadataException e) {
+            logger.info(e.getMessage());
         }
+
         return localProjectVersion;
     }
 }

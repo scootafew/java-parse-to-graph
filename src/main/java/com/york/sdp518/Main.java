@@ -20,13 +20,13 @@ public class Main {
                 artifactAnalyser.analyseArtifact(uri);
             }
         } catch (JavaParseToGraphException e) {
-//            e.printStackTrace();
-            System.err.println(e.getMessage() + ": " + e.getCause().getMessage());
+            e.printStackTrace();
+            System.err.println(e.getMessage() + (e.getCause() != null ? ": " + e.getCause() : ""));
             System.exit(e.getCode().getCode());
         } catch (Exception e) {
             e.printStackTrace();
             // Message might not exist (in case of java.lang.NullPointerException)
-            String message = e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : "");
+            String message = e.getMessage() + (e.getCause() != null ? ": " + e.getCause() : "");
             System.err.println(message);
             System.exit(1);
         }
