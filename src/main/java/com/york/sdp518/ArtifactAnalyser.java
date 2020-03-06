@@ -1,17 +1,14 @@
 package com.york.sdp518;
 
 import com.york.sdp518.exception.JavaParseToGraphException;
+import com.york.sdp518.exception.PomFileException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.impl.MavenPluginService;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import com.york.sdp518.util.PomModelUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,16 +29,15 @@ public class ArtifactAnalyser {
 
             // Process with spoon
             SpoonProcessor processor = new SpoonProcessor();
-            processor.process(sourcesPath);
+            processor.process(sourcesPath, getVersionFromArtifact(artifact));
         } finally {
             Neo4jSessionFactory.getInstance().close();
         }
     }
 
     private Path getSources(String artifact) throws JavaParseToGraphException {
-        String[] artifactName = artifact.split(":");
-        String artifactId = artifactName[1];
-        String version = artifactName[2];
+        String artifactId = getArtifactIdFromArtifact(artifact);
+        String version = getVersionFromArtifact(artifact);
 
         // Download sources from Maven
         File destination = new File("../artifacts/" + artifactId);
@@ -81,15 +77,16 @@ public class ArtifactAnalyser {
         }
     }
 
-    private String getSourceDirectoryPath(File pomFile) throws IOException, XmlPullParserException {
-        // Read source directory structure from POM
-        MavenXpp3Reader pomReader = new MavenXpp3Reader();
-        String sourceDirectory;
-        try (FileReader reader = new FileReader(pomFile)) {
-            sourceDirectory = pomReader.read(reader).getBuild().getSourceDirectory();
-        } catch (FileNotFoundException e) {
-            throw new IOException("Pom does not exist.");
-        }
-        return sourceDirectory != null ? sourceDirectory : "src/main/java";
+    private String getSourceDirectoryPath(File pomFile) throws PomFileException {
+        PomModelUtils pomModel = new PomModelUtils(pomFile);
+        return pomModel.getBuild().getSourceDirectory();
+    }
+
+    private String getArtifactIdFromArtifact(String artifact) {
+        return artifact.split(":")[1];
+    }
+
+    private String getVersionFromArtifact(String artifact) {
+        return artifact.split(":")[2];
     }
 }

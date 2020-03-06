@@ -1,10 +1,12 @@
 package com.york.sdp518.processor;
 
 import com.york.sdp518.domain.Artifact;
+import com.york.sdp518.util.PomModelUtils;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import spoon.support.compiler.SpoonPom;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -12,6 +14,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ArtifactProcessor {
+
+    private String projectVersion;
+
+    public void setProjectVersion(String projectVersion) {
+        this.projectVersion = projectVersion;
+    }
 
     public Set<Artifact> processModel(SpoonPom pom) {
         Set<Model> models = getModels(pom).collect(Collectors.toSet());
@@ -35,21 +43,38 @@ public class ArtifactProcessor {
     }
 
     private Artifact getArtifact(Model model) {
-        String groupId = getGroupId(model);
-        String version = model.getVersion() != null ? model.getVersion() : model.getParent().getVersion();
-        String fqn = String.join(":", groupId, model.getArtifactId(), version);
+        PomModelUtils pom = new PomModelUtils(model);
+        String fqn = String.join(":", pom.getGroupId(), pom.getArtifactId(), pom.getVersion());
         return new Artifact(fqn, model.getArtifactId());
     }
 
+    /**
+     * Prints each dependency as found in either dependencies or dependencyManagement sections of POM
+     * Excludes test scope and dependencies without explicit version
+     * @param model
+     */
     private void printDependencies(Model model) {
         List<String> excludedScopes = Arrays.asList("test", "system");
-        model.getDependencies().stream()
-                .filter(dependency -> !excludedScopes.contains(dependency.getScope()))
+        List<Dependency> dependencies = new ArrayList<>();
+        if (model.getDependencyManagement() != null) {
+            dependencies.addAll(model.getDependencyManagement().getDependencies());
+        }
+        dependencies.addAll(model.getDependencies());
+        dependencies.stream()
+                .filter(d -> !excludedScopes.contains(d.getScope()) && d.getVersion() != null)
                 .forEach(this::printDependency);
     }
 
     private void printDependency(Dependency dep) {
-        String fqn = String.join(":", dep.getGroupId(), dep.getArtifactId(), dep.getVersion());
+        String version = dep.getVersion();
+        if (version.startsWith("${") && version.endsWith("}")) {
+            if (version.equals("${project.version}")) {
+                version = projectVersion;
+            } else {
+                return;
+            }
+        }
+        String fqn = String.join(":", dep.getGroupId(), dep.getArtifactId(), version);
         System.out.println("Found maven dependency: " + fqn);
     }
 
@@ -57,7 +82,4 @@ public class ArtifactProcessor {
         System.out.println("Found maven artifact: " + artifact.getFullyQualifiedName());
     }
 
-    private String getGroupId(Model model) {
-        return model.getGroupId() != null ? model.getGroupId() : model.getParent().getGroupId();
-    }
 }

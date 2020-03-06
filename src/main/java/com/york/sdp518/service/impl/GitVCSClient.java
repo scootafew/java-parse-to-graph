@@ -1,12 +1,11 @@
 package com.york.sdp518.service.impl;
 
-import com.york.sdp518.Utils;
+import com.york.sdp518.util.Utils;
 import com.york.sdp518.exception.VCSClientException;
 import com.york.sdp518.service.VCSClient;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.TextProgressMonitor;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

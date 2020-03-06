@@ -24,6 +24,8 @@ public class Main {
             System.err.println(e.getMessage() + ": " + e.getCause().getMessage());
             System.exit(e.getCode().getCode());
         } catch (Exception e) {
+            e.printStackTrace();
+            // Message might not exist (in case of java.lang.NullPointerException)
             String message = e.getMessage() + (e.getCause() != null ? ": " + e.getCause().getMessage() : "");
             System.err.println(message);
             System.exit(1);

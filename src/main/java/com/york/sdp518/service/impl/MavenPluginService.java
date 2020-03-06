@@ -1,13 +1,12 @@
 package com.york.sdp518.service.impl;
 
-import com.york.sdp518.Utils;
+import com.york.sdp518.util.Utils;
 import com.york.sdp518.exception.MavenPluginInvocationException;
-import org.apache.maven.shared.invoker.DefaultInvocationRequest;
-import org.apache.maven.shared.invoker.DefaultInvoker;
-import org.apache.maven.shared.invoker.InvocationRequest;
-import org.apache.maven.shared.invoker.InvocationResult;
-import org.apache.maven.shared.invoker.Invoker;
-import org.apache.maven.shared.invoker.MavenInvocationException;
+import com.york.sdp518.exception.PomFileException;
+import com.york.sdp518.service.MavenInvoker;
+import org.apache.maven.shared.invoker.InvocationOutputHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -17,18 +16,39 @@ import java.util.Properties;
 
 public class MavenPluginService {
 
-    private static final String MAVEN_HOME = "M2_HOME";
+    private static final Logger logger = LoggerFactory.getLogger(MavenPluginService.class);
 
-    private Invoker invoker;
+    private static final String MAVEN_HOME_ENV_VAR = "M2_HOME";
+    private static final File MAVEN_HOME = new File(Utils.getPropertyOrEnv(MAVEN_HOME_ENV_VAR, true));
+
+    private MavenInvoker invoker;
 
     public MavenPluginService() {
-        invoker = new DefaultInvoker();
-        invoker.setMavenHome(new File(Utils.getPropertyOrEnv(MAVEN_HOME, true)));
+        invoker = new MavenInvoker();
+        invoker.setMavenHome(MAVEN_HOME);
+    }
+
+    public String getProjectVersion(File pomFile) throws PomFileException, MavenPluginInvocationException {
+        List<String> goal = Collections.singletonList("help:evaluate -q");
+        Properties properties = new Properties();
+        properties.setProperty("expression", "project.version");
+        properties.setProperty("forceStdout", "true");
+
+        if (pomFile.exists()) {
+            VersionOutputHandler outputHandler = new VersionOutputHandler();
+            invoker.executeGoals(goal, properties, pomFile, outputHandler);
+            return outputHandler.getResult();
+        } else {
+            throw new PomFileException("Pom file not found at " + pomFile.getPath());
+        }
     }
 
     public void setVersion(File pomFile, String version) throws MavenPluginInvocationException {
         List<String> goal = Collections.singletonList("versions:set -DprocessAllModules=true -DnewVersion=" + version);
-        executeGoals(goal, pomFile);
+        Properties properties = new Properties();
+        properties.setProperty("processAllModules", "true");
+        properties.setProperty("newVersion", version);
+        invoker.executeGoals(goal, properties, pomFile);
     }
 
     public void downloadAndCopyArtifactResources(String artifact, Path dest) throws MavenPluginInvocationException {
@@ -42,7 +62,7 @@ public class MavenPluginService {
         Properties properties = new Properties();
         properties.setProperty("artifact", artifact + ":jar:sources");
 
-        executeGoals(goal, properties);
+        invoker.executeGoals(goal, properties);
     }
 
     public void copyArtifactPom(String artifact, Path dest) throws MavenPluginInvocationException {
@@ -51,7 +71,7 @@ public class MavenPluginService {
         properties.setProperty("artifact", artifact + ":pom");
         properties.setProperty("outputDirectory", dest.toString());
 
-        executeGoals(goal, properties);
+        invoker.executeGoals(goal, properties);
     }
 
     public void copyArtifactSources(String artifact, Path dest) throws MavenPluginInvocationException {
@@ -60,7 +80,7 @@ public class MavenPluginService {
         properties.setProperty("artifact", artifact + ":jar:sources");
         properties.setProperty("outputDirectory", dest.toString());
 
-        executeGoals(goal, properties);
+        invoker.executeGoals(goal, properties);
     }
 
     public void buildClasspath(File pomFile) throws MavenPluginInvocationException {
@@ -68,43 +88,20 @@ public class MavenPluginService {
         Properties properties = new Properties();
         properties.setProperty("includeScope", "runtime");
 
-        executeGoals(goal, properties);
+        invoker.executeGoals(goal, properties);
     }
 
-    private void executeGoals(List<String> goals, File pomFile) throws MavenPluginInvocationException {
-        executeGoals(goals, null, pomFile);
-    }
+    private static final class VersionOutputHandler implements InvocationOutputHandler {
 
-    private void executeGoals(List<String> goals, Properties properties) throws MavenPluginInvocationException {
-        executeGoals(goals, properties,null);
-    }
+        private String result;
 
-    private void executeGoals(List<String> goals, Properties properties, File pomFile) throws MavenPluginInvocationException {
-        InvocationRequest request = new DefaultInvocationRequest();
-        if (pomFile != null) {
-            request.setPomFile(pomFile);
+        @Override
+        public void consumeLine(String line) {
+            result = line;
         }
-        if (properties != null) {
-            request.setProperties(properties);
-        }
-        request.setBatchMode(true);
-        request.setGoals(goals);
 
-        invoke(request);
-    }
-
-    private void invoke(InvocationRequest request) throws MavenPluginInvocationException {
-        try {
-            InvocationResult invocationResult = invoker.execute(request);
-            if (invocationResult.getExitCode() != 0) {
-                String msg = "Maven invocation exception";
-                if (invocationResult.getExecutionException() != null) {
-                    msg = invocationResult.getExecutionException().getMessage();
-                }
-                throw new MavenPluginInvocationException(msg);
-            }
-        } catch (MavenInvocationException e) {
-            throw new MavenPluginInvocationException("Error invoking maven plugin goal", e);
+        public String getResult() {
+            return result;
         }
     }
 }
