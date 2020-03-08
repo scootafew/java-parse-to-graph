@@ -44,10 +44,19 @@ public class MavenPluginService {
     }
 
     public void setVersion(File pomFile, String version) throws MavenPluginInvocationException {
-        List<String> goal = Collections.singletonList("versions:set -DprocessAllModules=true -DnewVersion=" + version);
+        List<String> goal = Collections.singletonList("versions:set");
         Properties properties = new Properties();
         properties.setProperty("processAllModules", "true");
         properties.setProperty("newVersion", version);
+        invoker.executeGoals(goal, properties, pomFile);
+    }
+
+    public void cleanInstall(File pomFile, boolean runTests) throws MavenPluginInvocationException {
+        List<String> goal = Collections.singletonList("clean install");
+        Properties properties = new Properties();
+        if (!runTests) {
+            properties.setProperty("skipTests", "true");
+        }
         invoker.executeGoals(goal, properties, pomFile);
     }
 

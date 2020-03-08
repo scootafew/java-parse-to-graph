@@ -14,6 +14,8 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class MavenMetadataService implements MetadataService {
 
@@ -39,6 +41,17 @@ public class MavenMetadataService implements MetadataService {
             throw new MavenMetadataException(errorMessage, e);
         } catch (XPathExpressionException e) {
             throw new MavenMetadataException("Could not read latest version from " + MAVEN_METADATA_XML, e);
+        }
+    }
+
+    // https://stackoverflow.com/questions/2461864/can-i-check-if-a-file-exists-at-a-url
+    public boolean isPublishedArtifact(String groupId, String artifactId) {
+        try {
+            final URL url = new URL(buildURL(groupId, artifactId));
+            HttpURLConnection huc = (HttpURLConnection) url.openConnection();
+            return huc.getResponseCode() == HttpURLConnection.HTTP_OK;
+        } catch (IOException e) {
+            return false;
         }
     }
 

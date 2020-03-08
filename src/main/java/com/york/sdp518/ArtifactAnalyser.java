@@ -1,12 +1,11 @@
 package com.york.sdp518;
 
 import com.york.sdp518.domain.Artifact;
-import com.york.sdp518.domain.Repository;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.exception.PomFileException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.impl.MavenPluginService;
-import com.york.sdp518.util.PomModelUtils;
+import com.york.sdp518.util.PomModel;
 import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,22 +26,18 @@ public class ArtifactAnalyser {
     }
 
     public void analyseArtifact(String artifactFqn) throws JavaParseToGraphException {
-        try {
-            // Check if repository has already been processed
-            Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
-            Artifact artifact = neo4jSession.load(Artifact.class, artifactFqn);
-            if (artifact == null) {
-                Path sourcesPath = getSources(artifactFqn);
+        logger.info("Processing artifact {}", artifactFqn);
+        // Check if repository has already been processed
+        Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
+        Artifact artifact = neo4jSession.load(Artifact.class, artifactFqn);
+        if (artifact == null) {
+            Path sourcesPath = getSources(artifactFqn);
 
-                // Process with spoon
-                SpoonProcessor processor = new SpoonProcessor();
-                processor.process(sourcesPath, getVersionFromArtifact(artifactFqn));
-            } else {
-                logger.info("Artifact has already been processed, exiting...");
-            }
-
-        } finally {
-            Neo4jSessionFactory.getInstance().close();
+            // Process with spoon
+            SpoonProcessor processor = new SpoonProcessor();
+            processor.process(sourcesPath, getVersionFromArtifact(artifactFqn));
+        } else {
+            logger.info("Artifact has already been processed, exiting...");
         }
     }
 
@@ -71,7 +66,7 @@ public class ArtifactAnalyser {
             Files.move(pom, pom.resolveSibling("pom.xml"));
 
             // Read source directory structure from POM
-            String sourceDirectoryPath = getSourceDirectoryPath(destinationPath.resolve("pom.xml").toFile());
+            Path sourceDirectoryPath = getSourceDirectoryPath(destinationPath.resolve("pom.xml").toFile());
             File sourceDirectory = destinationPath.resolve(sourceDirectoryPath).toFile();
             sourceDirectory.mkdirs(); // create source directory structure
 
@@ -88,9 +83,12 @@ public class ArtifactAnalyser {
         }
     }
 
-    private String getSourceDirectoryPath(File pomFile) throws PomFileException {
-        PomModelUtils pomModel = new PomModelUtils(pomFile);
-        return pomModel.getBuild().getSourceDirectory();
+    private Path getSourceDirectoryPath(File pomFile) throws PomFileException {
+        PomModel pomModel = new PomModel(pomFile);
+        if (pomModel.getSourceDirectory() != null) {
+            return Paths.get(pomModel.getSourceDirectory());
+        }
+        return Paths.get("src/main/java");
     }
 
     private String getArtifactIdFromArtifact(String artifact) {

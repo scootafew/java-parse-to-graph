@@ -31,7 +31,9 @@ public class SpoonProcessor {
 
         artifactProcessor.setProjectVersion(version);
 
-        MavenLauncher launcher = new MavenLauncher(projectPath.toString(), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
+        MavenLauncher launcher = new MavenLauncher(projectPath.toString(), MavenLauncher.SOURCE_TYPE.APP_SOURCE, true);
+        launcher.getEnvironment().setComplianceLevel(11); // Max currently supported by Spoon
+//        launcher.getEnvironment().setLevel(Level.INFO.name());
 
         if (classpathNotBuiltSuccessfully(launcher)) {
             logger.error("Could not build classpath, exiting...");
@@ -52,6 +54,7 @@ public class SpoonProcessor {
         return processedArtifacts;
     }
 
+    // TODO Method now in MavenProject
     /**
      * Expect temp classpath files to have been generated for all modules
      * @param launcher the launcher with which Maven was invoked

@@ -1,7 +1,7 @@
 package com.york.sdp518.processor;
 
 import com.york.sdp518.domain.Artifact;
-import com.york.sdp518.util.PomModelUtils;
+import com.york.sdp518.util.PomModel;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import spoon.support.compiler.SpoonPom;
@@ -43,7 +43,7 @@ public class ArtifactProcessor {
     }
 
     private Artifact getArtifact(Model model) {
-        PomModelUtils pom = new PomModelUtils(model);
+        PomModel pom = new PomModel(model);
         String fqn = String.join(":", pom.getGroupId(), pom.getArtifactId(), pom.getVersion());
         return new Artifact(fqn, model.getArtifactId());
     }

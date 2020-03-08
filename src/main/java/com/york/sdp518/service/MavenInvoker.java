@@ -10,6 +10,7 @@ import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.util.List;
 import java.util.Properties;
@@ -27,9 +28,9 @@ public class MavenInvoker extends DefaultInvoker {
     }
 
     public void executeGoals(List<String> goals,
-                              Properties properties,
-                              File pomFile,
-                              InvocationOutputHandler outputHandler) throws MavenPluginInvocationException {
+                             @Nullable Properties properties,
+                             @Nullable File pomFile,
+                             @Nullable InvocationOutputHandler outputHandler) throws MavenPluginInvocationException {
         InvocationRequest request = new DefaultInvocationRequest();
         if (pomFile != null) {
             request.setPomFile(pomFile);
@@ -43,7 +44,7 @@ public class MavenInvoker extends DefaultInvoker {
         invoke(request, outputHandler);
     }
 
-    private void invoke(InvocationRequest request, InvocationOutputHandler outHandler) throws MavenPluginInvocationException {
+    private void invoke(InvocationRequest request, @Nullable InvocationOutputHandler outHandler) throws MavenPluginInvocationException {
         if (outHandler == null) {
             outHandler = logger::debug;
         }

@@ -1,6 +1,5 @@
 package com.york.sdp518;
 
-import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.service.impl.GitVCSClient;
 
@@ -11,14 +10,9 @@ public class Main {
 
     public static void main(String[] args) {
         String uri = args[0];
+        String pathToPom = args[1].isEmpty() ? "pom.xml" : args[1];
         try {
-            if (uri.endsWith(".git")) {
-                RepositoryAnalyser repositoryAnalyser = new RepositoryAnalyser(new GitVCSClient());
-                repositoryAnalyser.analyseRepository(uri);
-            } else {
-                ArtifactAnalyser artifactAnalyser = new ArtifactAnalyser();
-                artifactAnalyser.analyseArtifact(uri);
-            }
+            doAnalysis(uri, pathToPom);
         } catch (JavaParseToGraphException e) {
             e.printStackTrace();
             System.err.println(e.getMessage() + (e.getCause() != null ? ": " + e.getCause() : ""));
@@ -29,6 +23,20 @@ public class Main {
             String message = e.getMessage() + (e.getCause() != null ? ": " + e.getCause() : "");
             System.err.println(message);
             System.exit(1);
+        }
+    }
+
+    private static void doAnalysis(String uri, String pathToPom) throws JavaParseToGraphException {
+        try {
+            if (uri.endsWith(".git")) {
+                RepositoryAnalyser repositoryAnalyser = new RepositoryAnalyser(new GitVCSClient());
+                repositoryAnalyser.analyseRepository(uri, pathToPom);
+            } else {
+                ArtifactAnalyser artifactAnalyser = new ArtifactAnalyser();
+                artifactAnalyser.analyseArtifact(uri);
+            }
+        } finally {
+            Neo4jSessionFactory.getInstance().close();
         }
     }
 

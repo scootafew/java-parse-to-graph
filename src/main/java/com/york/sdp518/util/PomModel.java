@@ -1,7 +1,6 @@
 package com.york.sdp518.util;
 
 import com.york.sdp518.exception.PomFileException;
-import org.apache.maven.model.Build;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -10,16 +9,22 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class PomModelUtils {
+public class PomModel {
 
     private Model model;
+    private String projectVersion;
 
-    public PomModelUtils(File pomFile) throws PomFileException {
+    public PomModel(File pomFile) throws PomFileException {
         this.model = createModelFromFile(pomFile);
     }
 
-    public PomModelUtils(Model model) {
+    public PomModel(Model model) {
         this.model = model;
+    }
+
+    public PomModel(Model model, String projectVersion) {
+        this.model = model;
+        this.projectVersion = projectVersion;
     }
 
     public Model createModelFromFile(File pomFile) throws PomFileException {
@@ -31,6 +36,10 @@ public class PomModelUtils {
         }
     }
 
+    public String getFullyQualifiedName() {
+        return String.join(":", getGroupId(), getArtifactId(), getVersion());
+    }
+
     public String getGroupId() {
         return model.getGroupId() != null ? model.getGroupId() : model.getParent().getGroupId();
     }
@@ -40,10 +49,23 @@ public class PomModelUtils {
     }
 
     public String getVersion() {
+        if (projectVersion != null) {
+            return projectVersion;
+        }
         return model.getVersion() != null ? model.getVersion() : model.getParent().getVersion();
     }
 
-    public Build getBuild() {
-        return model.getBuild();
+    public String getSourceDirectory() {
+        if (model.getBuild() != null) {
+            return model.getBuild().getSourceDirectory();
+        }
+        return null;
+    }
+
+    public Packaging getPackaging() {
+        if (model.getPackaging() != null) {
+            return Packaging.fromString(model.getPackaging());
+        }
+        return Packaging.JAR;
     }
 }
