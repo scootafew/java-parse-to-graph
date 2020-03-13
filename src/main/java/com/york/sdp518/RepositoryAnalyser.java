@@ -11,6 +11,7 @@ import com.york.sdp518.service.impl.MavenPluginService;
 import com.york.sdp518.util.MavenProject;
 import com.york.sdp518.util.Packaging;
 import com.york.sdp518.util.PomModel;
+import com.york.sdp518.util.Utils;
 import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
@@ -35,13 +37,13 @@ public class RepositoryAnalyser {
         this.mavenMetadataService = new MavenMetadataService();
     }
 
-    public void analyseRepository(String uri, String pathToPom) throws JavaParseToGraphException {
+    public void analyseRepository(String uri) throws JavaParseToGraphException {
         // TODO Check version as well, might want to use flag instead and create repo first in db to account for partial parsing
         // Check if repository has already been processed
         Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
         Repository repo = neo4jSession.load(Repository.class, uri);
         if (repo == null) {
-            cloneAndProcess(uri, pathToPom);
+            cloneAndProcess(uri);
         } else {
             logger.info("Repository has already been processed, exiting...");
             // TODO Throw new AlreadyProcessedException ? Probably not as not an error state but should we measure
@@ -49,21 +51,34 @@ public class RepositoryAnalyser {
 
     }
 
-    private void cloneAndProcess(String remoteUrl, String pathToPom) throws JavaParseToGraphException {
+    private void cloneAndProcess(String remoteUrl) throws JavaParseToGraphException {
         // Git clone
         File cloneDestination = vcsClient.clone(remoteUrl);
         Path projectDirectory = Paths.get(cloneDestination.toURI()).normalize();
 
-        Path pathToPomDirectory = getPomDirectory(projectDirectory, projectDirectory.resolve(pathToPom).getParent());
+//        Path pathToPomDirectory = getPomDirectory(projectDirectory, projectDirectory.resolve(pathToPom).getParent());
 
-        MavenProject mavenProject = new MavenProject(pathToPomDirectory, remoteUrl);
-        PomModel pom = mavenProject.getRootPom();
+        Collection<Path> directoriesWithPom = Utils.getDirectoriesWithPom(projectDirectory);
 
-        if (mavenMetadataService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
-            processAsLibrary(mavenProject);
-        } else {
-            processAsRepository(mavenProject);
+        for (Path path : directoriesWithPom) {
+            MavenProject mavenProject = new MavenProject(path, remoteUrl);
+            PomModel pom = mavenProject.getRootPom();
+
+            if (mavenMetadataService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
+                processAsLibrary(mavenProject);
+            } else {
+                processAsRepository(mavenProject);
+            }
         }
+
+//        MavenProject mavenProject = new MavenProject(pathToPomDirectory, remoteUrl);
+//        PomModel pom = mavenProject.getRootPom();
+//
+//        if (mavenMetadataService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
+//            processAsLibrary(mavenProject);
+//        } else {
+//            processAsRepository(mavenProject);
+//        }
     }
 
     private void processAsRepository(MavenProject mavenProject) throws JavaParseToGraphException {
@@ -86,6 +101,7 @@ public class RepositoryAnalyser {
 
     private void processAsLibrary(MavenProject mavenProject) throws JavaParseToGraphException {
         logger.info("Processing project {} as library", mavenProject.getProjectName());
+
         ArtifactAnalyser artifactProcessor = new ArtifactAnalyser();
         Repository repository = new Repository(mavenProject.getRemoteUrl(), mavenProject.getProjectName());
         Set<PomModel> jarPackagedArtifacts = mavenProject.getAllModules(Collections.singletonList(Packaging.JAR));

@@ -8,6 +8,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Properties;
 
 public class PomModel {
 
@@ -67,5 +68,10 @@ public class PomModel {
             return Packaging.fromString(model.getPackaging());
         }
         return Packaging.JAR;
+    }
+
+    // TODO Each model should inherit properties from its parent
+    public Properties getProperties() {
+        return model.getProperties();
     }
 }
