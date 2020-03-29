@@ -25,7 +25,7 @@ public class ArtifactAnalyser {
         this.mavenService = new MavenPluginService();
     }
 
-    public void analyseArtifact(String artifactFqn) throws JavaParseToGraphException {
+    public Artifact analyseArtifact(String artifactFqn) throws JavaParseToGraphException {
         logger.info("Processing artifact {}", artifactFqn);
         // Check if repository has already been processed
         Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
@@ -36,9 +36,14 @@ public class ArtifactAnalyser {
             // Process with spoon
             SpoonProcessor processor = new SpoonProcessor();
             processor.process(sourcesPath, getVersionFromArtifact(artifactFqn));
+
+            Artifact processedArtifact = new Artifact(artifactFqn, getArtifactIdFromArtifact(artifactFqn));
+            Neo4jSessionFactory.getInstance().getNeo4jSession().save(processedArtifact);
+            return processedArtifact;
         } else {
             logger.info("Artifact has already been processed, exiting...");
         }
+        return artifact;
     }
 
     private Path getSources(String artifact) throws JavaParseToGraphException {
@@ -56,6 +61,7 @@ public class ArtifactAnalyser {
         Path jarPath = destinationPath.resolve(sourcesFile);
 
         refactorToExpectedStructure(destinationPath, pomPath, jarPath);
+//        mavenService.setVersion(destinationPath.resolve("pom.xml").toFile(), version);
         return destinationPath;
     }
 

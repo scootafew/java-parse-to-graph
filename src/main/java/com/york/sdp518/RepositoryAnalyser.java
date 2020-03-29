@@ -109,9 +109,8 @@ public class RepositoryAnalyser {
             try {
                 String version = mavenMetadataService.getLatestVersion(artifact.getGroupId(), artifact.getArtifactId());
                 String fqn = String.join(":", artifact.getGroupId(), artifact.getArtifactId(), version);
-                artifactProcessor.analyseArtifact(fqn);
+                Artifact processedArtifact = artifactProcessor.analyseArtifact(fqn);
 
-                Artifact processedArtifact = new Artifact(fqn, artifact.getArtifactId());
                 repository.addAllArtifacts(Collections.singleton(processedArtifact));
             } catch (MavenMetadataException e) {
                 logger.info("No published artifact found for {}, skipping...", artifact.getArtifactId());

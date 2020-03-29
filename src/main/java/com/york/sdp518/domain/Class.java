@@ -4,16 +4,22 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
+import org.neo4j.ogm.annotation.Transient;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @NodeEntity
 public class Class extends Entity {
 
+    @Transient
+    Map<String, Method> declaredMethodMap = new HashMap<>();
+
     @Relationship(type = "DECLARES")
-    Set<Method> declaredMethods;
+    Collection<Method> declaredMethods;
 
     @Relationship(type = "CALLS")
     Set<Method> calledMethods;
@@ -30,11 +36,20 @@ public class Class extends Entity {
     }
 
     public void addAllDeclaredMethods(Collection<Method> methods) {
-        declaredMethods.addAll(methods);
+        methods.forEach(method -> declaredMethodMap.put(method.getFullyQualifiedName(), method));
+        declaredMethods = declaredMethodMap.values();
     }
 
     public void addAllCalledMethods(Collection<Method> methods) {
         calledMethods.addAll(methods);
+    }
+
+    public Method getDeclaredMethod(String fqn) {
+        return declaredMethodMap.get(fqn);
+    }
+
+    public Collection<Method> getDeclaredMethods() {
+        return declaredMethods;
     }
 
     @Override
@@ -46,8 +61,7 @@ public class Class extends Entity {
         Class aClass = (Class) o;
 
         return new EqualsBuilder()
-                .append(declaredMethods, aClass.declaredMethods)
-                .append(calledMethods, aClass.calledMethods)
+                .appendSuper(super.equals(o))
                 .isEquals();
     }
 
@@ -55,8 +69,6 @@ public class Class extends Entity {
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
                 .appendSuper(super.hashCode())
-                .append(declaredMethods)
-                .append(calledMethods)
                 .toHashCode();
     }
 }

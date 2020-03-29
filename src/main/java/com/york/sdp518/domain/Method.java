@@ -12,15 +12,14 @@ import java.util.Set;
 @NodeEntity
 public class Method extends Entity {
 
-    @Relationship(type = "DECLARES", direction = Relationship.INCOMING)
-    Class clazz;
-
     @Relationship(type = "CALLS")
-    Set<Method> methodCalls;
+    Set<Method> methodCalls = new HashSet<>();
 
-    public Method() {
-        methodCalls = new HashSet<>();
-    }
+    boolean declarationDiscovered = false;
+
+    int lineNumber;
+
+    public Method() { }
 
     public Method(String fullyQualifiedSignature, String name) {
         this();
@@ -32,6 +31,13 @@ public class Method extends Entity {
         methodCalls.addAll(methods);
     }
 
+    public void setLineNumber(int lineNumber) {
+        this.lineNumber = lineNumber;
+    }
+
+    public void setDiscovered() {
+        this.declarationDiscovered = true;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -42,17 +48,14 @@ public class Method extends Entity {
         Method method = (Method) o;
 
         return new EqualsBuilder()
-                .append(clazz, method.clazz)
-                .append(methodCalls, method.methodCalls)
+                .appendSuper(super.equals(o))
                 .isEquals();
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
+        return new HashCodeBuilder(57, 11)
                 .appendSuper(super.hashCode())
-                .append(clazz)
-                .append(methodCalls)
                 .toHashCode();
     }
 }

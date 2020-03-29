@@ -37,36 +37,31 @@ public class PackageProcessor {
     private void createPackageIfNotExists(String qualifiedPackageName) {
         Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
         try (Transaction tx = session.beginTransaction()) {
-            Package currentPackage = session.load(Package.class, qualifiedPackageName);
+            Package packageForCreation = getPackageToCreate(qualifiedPackageName, session);
 
-            if (currentPackage == null) {
-                String parentPackageQualifiedName = getParentPackageQualifiedName(qualifiedPackageName);
-                String currentPackageName = getCurrentPackageQualifiedName(qualifiedPackageName);
-                currentPackage = new Package(qualifiedPackageName, currentPackageName);
-                Package packageForCreation = getParentOrCreate(parentPackageQualifiedName, currentPackage, session);
-
+            // Don't save unnecessarily (if package already existed)
+            if (!packageForCreation.getFullyQualifiedName().equals(qualifiedPackageName)) {
                 session.save(packageForCreation);
                 tx.commit();
             }
-
         }
     }
 
-    private Package getParentOrCreate(String qualifiedPackageName, Package childPackage, Session session) {
-        if (qualifiedPackageName.isEmpty()) {
-            return childPackage;
-        }
-
+    private Package getPackageToCreate(String qualifiedPackageName, Session session) {
         Package currentPackage = session.load(Package.class, qualifiedPackageName);
         if (currentPackage != null) {
-            currentPackage.getPackages().add(childPackage);
-            return currentPackage;
+            return currentPackage; // Package already exists
         } else {
             String parentPackageQualifiedName = getParentPackageQualifiedName(qualifiedPackageName);
             String currentPackageName = getCurrentPackageQualifiedName(qualifiedPackageName);
             currentPackage = new Package(qualifiedPackageName, currentPackageName);
-            currentPackage.getPackages().add(childPackage);
-            return getParentOrCreate(parentPackageQualifiedName, currentPackage, session);
+            if (parentPackageQualifiedName.isEmpty()) {
+                return currentPackage; // return new Package as has no parent
+            } else {
+                Package parent = getPackageToCreate(parentPackageQualifiedName, session);
+                parent.addPackage(currentPackage);
+                return parent;
+            }
         }
     }
 
