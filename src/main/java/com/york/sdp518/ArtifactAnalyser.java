@@ -1,10 +1,12 @@
 package com.york.sdp518;
 
 import com.york.sdp518.domain.Artifact;
+import com.york.sdp518.exception.BuildClasspathException;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.exception.PomFileException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.impl.MavenPluginService;
+import com.york.sdp518.util.SpoonedArtifact;
 import com.york.sdp518.util.PomModel;
 import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
@@ -19,10 +21,12 @@ public class ArtifactAnalyser {
 
     private static final Logger logger = LoggerFactory.getLogger(ArtifactAnalyser.class);
 
-    MavenPluginService mavenService;
+    private MavenPluginService mavenService;
+    private SpoonProcessor spoonProcessor;
 
     public ArtifactAnalyser() {
         this.mavenService = new MavenPluginService();
+        this.spoonProcessor = new SpoonProcessor();
     }
 
     public Artifact analyseArtifact(String artifactFqn) throws JavaParseToGraphException {
@@ -31,19 +35,29 @@ public class ArtifactAnalyser {
         Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
         Artifact artifact = neo4jSession.load(Artifact.class, artifactFqn);
         if (artifact == null) {
-            Path sourcesPath = getSources(artifactFqn);
-
-            // Process with spoon
-            SpoonProcessor processor = new SpoonProcessor();
-            processor.process(sourcesPath, getVersionFromArtifact(artifactFqn));
-
-            Artifact processedArtifact = new Artifact(artifactFqn, getArtifactIdFromArtifact(artifactFqn));
-            Neo4jSessionFactory.getInstance().getNeo4jSession().save(processedArtifact);
-            return processedArtifact;
+            artifact = processArtifact(artifactFqn);
         } else {
             logger.info("Artifact has already been processed, exiting...");
         }
         return artifact;
+    }
+
+    private Artifact processArtifact(String artifactFqn) throws JavaParseToGraphException {
+        Path sourcesPath = getSources(artifactFqn);
+
+        SpoonedArtifact spoonedArtifact = new SpoonedArtifact(sourcesPath);
+        if (spoonedArtifact.classpathNotBuiltSuccessfully()) {
+            logger.error("Could not build classpath, exiting...");
+            throw new BuildClasspathException("Could not build classpath for artifact");
+        }
+
+        // Process with spoon
+        spoonProcessor.process(spoonedArtifact);
+
+        Artifact processedArtifact = spoonedArtifact.getArtifact();
+        Neo4jSessionFactory.getInstance().getNeo4jSession().save(spoonedArtifact.getArtifact());
+
+        return processedArtifact;
     }
 
     private Path getSources(String artifact) throws JavaParseToGraphException {

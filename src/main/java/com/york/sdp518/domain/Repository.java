@@ -2,6 +2,7 @@ package com.york.sdp518.domain;
 
 import org.neo4j.ogm.annotation.Id;
 import org.neo4j.ogm.annotation.NodeEntity;
+import org.neo4j.ogm.annotation.Relationship;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -15,6 +16,7 @@ public class Repository {
 
     private String name;
 
+    @Relationship(type = "DECLARES")
     private Set<Artifact> artifacts;
 
     public Repository() {

@@ -1,5 +1,6 @@
 package com.york.sdp518.util;
 
+import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.exception.PomFileException;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -73,5 +74,10 @@ public class PomModel {
     // TODO Each model should inherit properties from its parent
     public Properties getProperties() {
         return model.getProperties();
+    }
+
+    public Artifact asArtifact() {
+        String fqn = String.join(":", getGroupId(), getArtifactId(), getVersion());
+        return new Artifact(fqn, getArtifactId());
     }
 }

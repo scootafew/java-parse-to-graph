@@ -8,7 +8,7 @@ import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.VCSClient;
 import com.york.sdp518.service.impl.MavenMetadataService;
 import com.york.sdp518.service.impl.MavenPluginService;
-import com.york.sdp518.util.MavenProject;
+import com.york.sdp518.util.SpoonedRepository;
 import com.york.sdp518.util.Packaging;
 import com.york.sdp518.util.PomModel;
 import com.york.sdp518.util.Utils;
@@ -30,11 +30,13 @@ public class RepositoryAnalyser {
     private VCSClient vcsClient;
     private MavenPluginService mavenPluginService;
     private MavenMetadataService mavenMetadataService;
+    private ArtifactAnalyser artifactAnalyser;
 
     public RepositoryAnalyser(VCSClient vcsClient) {
         this.vcsClient = vcsClient;
         this.mavenPluginService = new MavenPluginService();
         this.mavenMetadataService = new MavenMetadataService();
+        this.artifactAnalyser = new ArtifactAnalyser();
     }
 
     public void analyseRepository(String uri) throws JavaParseToGraphException {
@@ -58,58 +60,52 @@ public class RepositoryAnalyser {
 
 //        Path pathToPomDirectory = getPomDirectory(projectDirectory, projectDirectory.resolve(pathToPom).getParent());
 
+        // Expect path to root POM for all projects found in repository (likely one, maybe more)
         Collection<Path> directoriesWithPom = Utils.getDirectoriesWithPom(projectDirectory);
 
         for (Path path : directoriesWithPom) {
-            MavenProject mavenProject = new MavenProject(path, remoteUrl);
-            PomModel pom = mavenProject.getRootPom();
+            SpoonedRepository spoonedRepository = new SpoonedRepository(path, remoteUrl);
+            PomModel pom = spoonedRepository.getRootPom();
 
             if (mavenMetadataService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
-                processAsLibrary(mavenProject);
+                spoonedRepository.printDependencies(true);
+                processAsLibrary(spoonedRepository);
             } else {
-                processAsRepository(mavenProject);
+                spoonedRepository.printArtifacts();
+                spoonedRepository.printDependencies();
+                processAsRepository(spoonedRepository);
             }
         }
 
-//        MavenProject mavenProject = new MavenProject(pathToPomDirectory, remoteUrl);
-//        PomModel pom = mavenProject.getRootPom();
-//
-//        if (mavenMetadataService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
-//            processAsLibrary(mavenProject);
-//        } else {
-//            processAsRepository(mavenProject);
-//        }
     }
 
-    private void processAsRepository(MavenProject mavenProject) throws JavaParseToGraphException {
-        logger.info("Processing project {} as repository", mavenProject.getProjectName());
-        if (!mavenProject.classpathBuiltSuccessfully()) {
-            mavenPluginService.cleanInstall(mavenProject.getRootPomFile(), false);
-            // TODO Rebuild classpath here if passing through to SpoonProcessor
+    private void processAsRepository(SpoonedRepository spoonedRepository) throws JavaParseToGraphException {
+        logger.info("Processing project {} as repository", spoonedRepository.getProjectName());
+        if (spoonedRepository.classpathNotBuiltSuccessfully()) {
+            mavenPluginService.cleanInstall(spoonedRepository.getRootPomFile(), false);
+            spoonedRepository.rebuildClasspath();
         }
 
-        Repository repository = new Repository(mavenProject.getRemoteUrl(), mavenProject.getProjectName());
+        Repository repository = new Repository(spoonedRepository.getRemoteUrl(), spoonedRepository.getProjectName());
 
         // Process with spoon
         SpoonProcessor processor = new SpoonProcessor();
-        processor.process(mavenProject.getProjectDirectory(), mavenProject.getRootPom().getVersion()); // TODO may directly pass in MavenProject
-        Set<Artifact> artifacts = processor.getProcessedArtifacts();
+        processor.process(spoonedRepository);
 
-        repository.addAllArtifacts(artifacts);
+        repository.addAllArtifacts(spoonedRepository.getArtifacts());
         Neo4jSessionFactory.getInstance().getNeo4jSession().save(repository);
     }
 
-    private void processAsLibrary(MavenProject mavenProject) throws JavaParseToGraphException {
-        logger.info("Processing project {} as library", mavenProject.getProjectName());
+    private void processAsLibrary(SpoonedRepository spoonedRepository) throws JavaParseToGraphException {
+        logger.info("Processing project {} as library", spoonedRepository.getProjectName());
 
-        ArtifactAnalyser artifactProcessor = new ArtifactAnalyser();
-        Repository repository = new Repository(mavenProject.getRemoteUrl(), mavenProject.getProjectName());
-        Set<PomModel> jarPackagedArtifacts = mavenProject.getAllModules(Collections.singletonList(Packaging.JAR));
+        Repository repository = new Repository(spoonedRepository.getRemoteUrl(), spoonedRepository.getProjectName());
+        Set<PomModel> jarPackagedArtifacts = spoonedRepository.getAllModules(Collections.singletonList(Packaging.JAR));
         for (PomModel artifact : jarPackagedArtifacts) {
             try {
                 String version = mavenMetadataService.getLatestVersion(artifact.getGroupId(), artifact.getArtifactId());
                 String fqn = String.join(":", artifact.getGroupId(), artifact.getArtifactId(), version);
-                Artifact processedArtifact = artifactProcessor.analyseArtifact(fqn);
+                Artifact processedArtifact = artifactAnalyser.analyseArtifact(fqn);
 
                 repository.addAllArtifacts(Collections.singleton(processedArtifact));
             } catch (MavenMetadataException e) {
@@ -119,24 +115,7 @@ public class RepositoryAnalyser {
         Neo4jSessionFactory.getInstance().getNeo4jSession().save(repository);
     }
 
-    /**
-     * Starting with candidate pom path, navigates up directory structure until it finds a directory without a POM
-     * or that is the top directory of the project
-     * @param projectDirectory
-     * @param pathToCandidatePom
-     * @return
-     */
-    private Path getPomDirectory(Path projectDirectory, Path pathToCandidatePom) {
-        if (pathToCandidatePom.equals(projectDirectory)) {
-            return pathToCandidatePom;
-        }
-        if (pathToCandidatePom.resolveSibling("pom.xml").toFile().exists()) {
-           return getPomDirectory(projectDirectory, pathToCandidatePom.getParent());
-        } else {
-            return pathToCandidatePom;
-        }
-    }
-
+    @Deprecated
     private String checkVersionAlignment(Path projectPath) throws JavaParseToGraphException {
         File pomFile = projectPath.resolve("pom.xml").toFile();
         PomModel pomModel = new PomModel(pomFile);

@@ -33,7 +33,7 @@ public class MethodProcessor {
                 .orElse(new Method(fullyQualifiedSignature, method.getSimpleName()));
         declaredMethod.setDiscovered();
         declaredMethod.setLineNumber(method.getPosition().getLine());
-        System.out.println("\u001B[31m" + "Method: " + declaredMethod.getFullyQualifiedName() + ", Line: " + method.getPosition().getLine() +  "\u001B[0m");
+//        System.out.println("\u001B[31m" + "Method: " + declaredMethod.getFullyQualifiedName() + ", Line: " + method.getPosition().getLine() +  "\u001B[0m");
 
         return declaredMethod;
     }
@@ -63,7 +63,7 @@ public class MethodProcessor {
 //                .orElse(new Method(fullyQualifiedSignature, method.getSimpleName()));
         Method declaredMethod = clazz.getDeclaredMethod(fullyQualifiedSignature);
 
-        System.out.println("PROCESSING_CALL: " + fullyQualifiedSignature);
+//        System.out.println("PROCESSING_CALL: " + fullyQualifiedSignature);
 
         CalledMethodsVisitor calledMethodsVisitor = new CalledMethodsVisitor();
         method.accept(calledMethodsVisitor);
