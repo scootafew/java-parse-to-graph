@@ -1,5 +1,7 @@
 package com.york.sdp518.util;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -17,6 +19,10 @@ public final class Utils {
 
     public static String repoNameFromURI(String uri) {
         return uri.substring(uri.lastIndexOf('/') + 1, uri.lastIndexOf(".git"));
+    }
+
+    public static String repoFullNameFromURI(String uri) {
+        return StringUtils.substringBetween(uri, "github.com/", ".git");
     }
 
     public static Collection<Path> getDirectoriesWithPom(Path projectDirectory) {
