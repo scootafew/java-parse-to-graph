@@ -1,5 +1,6 @@
 package com.york.sdp518;
 
+import com.york.sdp518.exception.AlreadyProcessedException;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.service.impl.GitVCSClient;
 
@@ -8,20 +9,25 @@ import java.io.PrintStream;
 
 public class Main {
 
+    private static final int NORMAL_EXIT_CODE = 0;
+    private static final int ERROR_EXIT_CODE = 1;
+
     public static void main(String[] args) {
         String uri = args[0];
         try {
             doAnalysis(uri);
+            exit("Processed successfully", NORMAL_EXIT_CODE);
+        } catch (AlreadyProcessedException e) {
+            exit(e.getMessage(), NORMAL_EXIT_CODE);
         } catch (JavaParseToGraphException e) {
             e.printStackTrace();
-            System.err.println(e.getMessage() + (e.getCause() != null ? ": " + e.getCause() : ""));
-            System.exit(e.getCode().getCode());
+            String message = e.getMessage() + (e.getCause() != null ? ": " + e.getCause() : "");
+            exit(message, e.getCode().getCode());
         } catch (Exception e) {
             e.printStackTrace();
             // Message might not exist (in case of java.lang.NullPointerException)
             String message = e.getMessage() + (e.getCause() != null ? ": " + e.getCause() : "");
-            System.err.println(message);
-            System.exit(1);
+            exit(message, ERROR_EXIT_CODE);
         }
     }
 
@@ -37,6 +43,11 @@ public class Main {
         } finally {
             Neo4jSessionFactory.getInstance().close();
         }
+    }
+
+    private static void exit(String message, int code) {
+        System.out.println("Exit message: " + message);
+        System.exit(code);
     }
 
     private static void redirectStdOut() throws Exception {

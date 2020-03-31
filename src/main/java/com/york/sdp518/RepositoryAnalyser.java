@@ -2,6 +2,7 @@ package com.york.sdp518;
 
 import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.domain.Repository;
+import com.york.sdp518.exception.AlreadyProcessedException;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.exception.MavenMetadataException;
 import com.york.sdp518.processor.SpoonProcessor;
@@ -47,8 +48,7 @@ public class RepositoryAnalyser {
         if (repo == null) {
             cloneAndProcess(uri);
         } else {
-            logger.info("Repository has already been processed, exiting...");
-            // TODO Throw new AlreadyProcessedException ? Probably not as not an error state but should we measure
+            throw new AlreadyProcessedException("Repository has already been processed");
         }
 
     }
@@ -110,6 +110,8 @@ public class RepositoryAnalyser {
                 repository.addAllArtifacts(Collections.singleton(processedArtifact));
             } catch (MavenMetadataException e) {
                 logger.info("No published artifact found for {}, skipping...", artifact.getArtifactId());
+            } catch (AlreadyProcessedException e) {
+                logger.info("Artifact {} has already been processed, skipping...", artifact.getArtifactId());
             }
         }
         Neo4jSessionFactory.getInstance().getNeo4jSession().save(repository);

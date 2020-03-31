@@ -1,6 +1,7 @@
 package com.york.sdp518;
 
 import com.york.sdp518.domain.Artifact;
+import com.york.sdp518.exception.AlreadyProcessedException;
 import com.york.sdp518.exception.BuildClasspathException;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.exception.PomFileException;
@@ -37,7 +38,7 @@ public class ArtifactAnalyser {
         if (artifact == null) {
             artifact = processArtifact(artifactFqn);
         } else {
-            logger.info("Artifact has already been processed, exiting...");
+            throw new AlreadyProcessedException("Artifact has already been processed");
         }
         return artifact;
     }
