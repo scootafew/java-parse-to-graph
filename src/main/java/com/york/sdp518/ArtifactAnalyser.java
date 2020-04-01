@@ -1,15 +1,15 @@
 package com.york.sdp518;
 
 import com.york.sdp518.domain.Artifact;
-import com.york.sdp518.exception.AlreadyProcessedException;
+import com.york.sdp518.domain.ProcessingState;
 import com.york.sdp518.exception.BuildClasspathException;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.exception.PomFileException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.impl.MavenPluginService;
+import com.york.sdp518.service.impl.Neo4jServiceUtils;
 import com.york.sdp518.util.SpoonedArtifact;
 import com.york.sdp518.util.PomModel;
-import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,23 +30,32 @@ public class ArtifactAnalyser {
         this.spoonProcessor = new SpoonProcessor();
     }
 
-    public Artifact analyseArtifact(String artifactFqn) throws JavaParseToGraphException {
-        logger.info("Processing artifact {}", artifactFqn);
-        // Check if repository has already been processed
-        Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
-        Artifact artifact = neo4jSession.load(Artifact.class, artifactFqn);
-        if (artifact == null) {
-            artifact = processArtifact(artifactFqn);
-        } else {
-            throw new AlreadyProcessedException("Artifact has already been processed");
-        }
-        return artifact;
+    public void analyseArtifact(String artifactFqn) throws JavaParseToGraphException {
+        analyseArtifact(new Artifact(artifactFqn));
     }
 
-    private Artifact processArtifact(String artifactFqn) throws JavaParseToGraphException {
-        Path sourcesPath = getSources(artifactFqn);
+    public void analyseArtifact(Artifact artifact) throws JavaParseToGraphException {
+        logger.info("Processing artifact {}", artifact.getFullyQualifiedName());
+        // Check if repository has already been processed
+        Neo4jServiceUtils neo4jService = new Neo4jServiceUtils();
+        neo4jService.tryToBeginProcessing(Artifact.class, artifact);
 
-        SpoonedArtifact spoonedArtifact = new SpoonedArtifact(sourcesPath);
+        // if no AlreadyProcessedException thrown, continue
+        try {
+            processArtifact(artifact);
+            artifact.setProcessingState(ProcessingState.COMPLETED);
+        } catch (Exception e) {
+            artifact.setProcessingState(ProcessingState.FAILED);
+            throw e;
+        } finally {
+            Neo4jSessionFactory.getInstance().getNeo4jSession().save(artifact);
+        }
+    }
+
+    private void processArtifact(Artifact artifact) throws JavaParseToGraphException {
+        Path sourcesPath = getSources(artifact);
+
+        SpoonedArtifact spoonedArtifact = new SpoonedArtifact(sourcesPath, artifact);
         if (spoonedArtifact.classpathNotBuiltSuccessfully()) {
             logger.error("Could not build classpath, exiting...");
             throw new BuildClasspathException("Could not build classpath for artifact");
@@ -54,21 +63,16 @@ public class ArtifactAnalyser {
 
         // Process with spoon
         spoonProcessor.process(spoonedArtifact);
-
-        Artifact processedArtifact = spoonedArtifact.getArtifact();
-        Neo4jSessionFactory.getInstance().getNeo4jSession().save(spoonedArtifact.getArtifact());
-
-        return processedArtifact;
     }
 
-    private Path getSources(String artifact) throws JavaParseToGraphException {
-        String artifactId = getArtifactIdFromArtifact(artifact);
-        String version = getVersionFromArtifact(artifact);
+    private Path getSources(Artifact artifact) throws JavaParseToGraphException {
+        String artifactId = artifact.getArtifactId();
+        String version = artifact.getVersion();
 
         // Download sources from Maven
         File destination = new File("../artifacts/" + artifactId);
         Path destinationPath = Paths.get(destination.toURI()).normalize();
-        mavenService.downloadAndCopyArtifactResources(artifact, destinationPath);
+        mavenService.downloadAndCopyArtifactResources(artifact.getFullyQualifiedName(), destinationPath);
 
         String pomFile = String.format("%s-%s.pom", artifactId, version);
         String sourcesFile = String.format("%s-%s-sources.jar", artifactId, version);
@@ -112,11 +116,4 @@ public class ArtifactAnalyser {
         return Paths.get("src/main/java");
     }
 
-    private String getArtifactIdFromArtifact(String artifact) {
-        return artifact.split(":")[1];
-    }
-
-    private String getVersionFromArtifact(String artifact) {
-        return artifact.split(":")[2];
-    }
 }

@@ -27,6 +27,15 @@ public abstract class Entity {
         this.name = name;
     }
 
+    Entity() {
+
+    }
+
+    Entity(String fullyQualifiedName, String name) {
+        this.fullyQualifiedName = fullyQualifiedName;
+        this.name = name;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

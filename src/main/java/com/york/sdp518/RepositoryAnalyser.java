@@ -1,19 +1,21 @@
 package com.york.sdp518;
 
 import com.york.sdp518.domain.Artifact;
+import com.york.sdp518.domain.ProcessingState;
 import com.york.sdp518.domain.Repository;
 import com.york.sdp518.exception.AlreadyProcessedException;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.exception.MavenMetadataException;
+import com.york.sdp518.exception.PartialProcessingFailureException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.VCSClient;
 import com.york.sdp518.service.impl.MavenMetadataService;
 import com.york.sdp518.service.impl.MavenPluginService;
+import com.york.sdp518.service.impl.Neo4jServiceUtils;
 import com.york.sdp518.util.SpoonedRepository;
 import com.york.sdp518.util.Packaging;
 import com.york.sdp518.util.PomModel;
 import com.york.sdp518.util.Utils;
-import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +24,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class RepositoryAnalyser {
 
@@ -43,78 +47,107 @@ public class RepositoryAnalyser {
     public void analyseRepository(String uri) throws JavaParseToGraphException {
         // TODO Check version as well, might want to use flag instead and create repo first in db to account for partial parsing
         // Check if repository has already been processed
-        Session neo4jSession = Neo4jSessionFactory.getInstance().getNeo4jSession();
-        Repository repo = neo4jSession.load(Repository.class, uri);
-        if (repo == null) {
-            cloneAndProcess(uri);
-        } else {
-            throw new AlreadyProcessedException("Repository has already been processed");
-        }
+        Neo4jServiceUtils neo4jService = new Neo4jServiceUtils();
+        Repository repo = neo4jService.tryToBeginProcessing(Repository.class, new Repository(uri));
 
+        // if no AlreadyProcessedException thrown, continue
+        try {
+            cloneAndProcess(repo);
+            repo.setProcessingState(ProcessingState.COMPLETED);
+        } catch (Exception e) {
+            repo.setProcessingState(ProcessingState.FAILED);
+            throw e;
+        } finally {
+            Neo4jSessionFactory.getInstance().getNeo4jSession().save(repo);
+        }
     }
 
-    private void cloneAndProcess(String remoteUrl) throws JavaParseToGraphException {
+    private void cloneAndProcess(Repository repository) throws JavaParseToGraphException {
         // Git clone
-        File cloneDestination = vcsClient.clone(remoteUrl);
+        File cloneDestination = vcsClient.clone(repository.getUrl());
         Path projectDirectory = Paths.get(cloneDestination.toURI()).normalize();
-
-//        Path pathToPomDirectory = getPomDirectory(projectDirectory, projectDirectory.resolve(pathToPom).getParent());
 
         // Expect path to root POM for all projects found in repository (likely one, maybe more)
         Collection<Path> directoriesWithPom = Utils.getDirectoriesWithPom(projectDirectory);
 
         for (Path path : directoriesWithPom) {
-            SpoonedRepository spoonedRepository = new SpoonedRepository(path, remoteUrl);
+            SpoonedRepository spoonedRepository = new SpoonedRepository(path, repository.getUrl());
             PomModel pom = spoonedRepository.getRootPom();
 
             if (mavenMetadataService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
                 spoonedRepository.printDependencies(true);
-                processAsLibrary(spoonedRepository);
+                processAsLibrary(spoonedRepository, repository);
             } else {
                 spoonedRepository.printArtifacts();
                 spoonedRepository.printDependencies();
-                processAsRepository(spoonedRepository);
+                processAsRepository(spoonedRepository, repository);
             }
         }
 
     }
 
-    private void processAsRepository(SpoonedRepository spoonedRepository) throws JavaParseToGraphException {
+    private void processAsRepository(SpoonedRepository spoonedRepository, Repository repository) throws JavaParseToGraphException {
         logger.info("Processing project {} as repository", spoonedRepository.getProjectName());
         if (spoonedRepository.classpathNotBuiltSuccessfully()) {
             mavenPluginService.cleanInstall(spoonedRepository.getRootPomFile(), false);
             spoonedRepository.rebuildClasspath();
         }
 
-        Repository repository = new Repository(spoonedRepository.getRemoteUrl(), spoonedRepository.getProjectName());
-
         // Process with spoon
         SpoonProcessor processor = new SpoonProcessor();
         processor.process(spoonedRepository);
 
+        spoonedRepository.getArtifacts().forEach(artifact -> artifact.setProcessingState(ProcessingState.COMPLETED));
         repository.addAllArtifacts(spoonedRepository.getArtifacts());
-        Neo4jSessionFactory.getInstance().getNeo4jSession().save(repository);
     }
 
-    private void processAsLibrary(SpoonedRepository spoonedRepository) throws JavaParseToGraphException {
+    private void processAsLibrary(SpoonedRepository spoonedRepository, Repository repository) throws JavaParseToGraphException {
         logger.info("Processing project {} as library", spoonedRepository.getProjectName());
 
-        Repository repository = new Repository(spoonedRepository.getRemoteUrl(), spoonedRepository.getProjectName());
         Set<PomModel> jarPackagedArtifacts = spoonedRepository.getAllModules(Collections.singletonList(Packaging.JAR));
-        for (PomModel artifact : jarPackagedArtifacts) {
-            try {
-                String version = mavenMetadataService.getLatestVersion(artifact.getGroupId(), artifact.getArtifactId());
-                String fqn = String.join(":", artifact.getGroupId(), artifact.getArtifactId(), version);
-                Artifact processedArtifact = artifactAnalyser.analyseArtifact(fqn);
 
-                repository.addAllArtifacts(Collections.singleton(processedArtifact));
-            } catch (MavenMetadataException e) {
-                logger.info("No published artifact found for {}, skipping...", artifact.getArtifactId());
-            } catch (AlreadyProcessedException e) {
-                logger.info("Artifact {} has already been processed, skipping...", artifact.getArtifactId());
+        Set<Artifact> processedArtifacts = jarPackagedArtifacts.stream()
+                .map(this::getArtifactToProcess)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(this::processArtifact)
+                .collect(Collectors.toSet());
+
+        processedArtifacts.forEach(repository::addArtifact);
+        long failedCount = processedArtifacts.stream()
+                .filter(artifact -> artifact.getProcessingState().equals(ProcessingState.FAILED))
+                .count();
+
+        if (failedCount > 0) {
+            if (failedCount == processedArtifacts.size()) {
+                throw new JavaParseToGraphException("Processing failed for all artifacts in repository");
             }
+            String message = String.format("Processing failed for %s/%s artifacts in repository",
+                    failedCount, processedArtifacts.size());
+            throw new PartialProcessingFailureException(message);
         }
-        Neo4jSessionFactory.getInstance().getNeo4jSession().save(repository);
+    }
+
+    private Optional<Artifact> getArtifactToProcess(PomModel artifact) {
+        try {
+            String version = mavenMetadataService.getLatestVersion(artifact.getGroupId(), artifact.getArtifactId());
+            String fqn = String.join(":", artifact.getGroupId(), artifact.getArtifactId(), version);
+            return Optional.of(new Artifact(fqn));
+        } catch (MavenMetadataException e) {
+            logger.info("No published artifact found for {}, skipping...", artifact.getArtifactId());
+        }
+        return Optional.empty();
+    }
+
+    private Artifact processArtifact(Artifact artifact) {
+        try {
+            artifactAnalyser.analyseArtifact(artifact);
+        } catch (AlreadyProcessedException e) {
+            logger.info("Artifact {} has already been processed, skipping...", artifact.getArtifactId());
+        } catch (JavaParseToGraphException e) {
+            logger.warn("Processing failed for artifact {}", artifact.getArtifactId());
+        }
+        return artifact;
     }
 
     @Deprecated

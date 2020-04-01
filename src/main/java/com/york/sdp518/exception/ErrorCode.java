@@ -1,6 +1,7 @@
 package com.york.sdp518.exception;
 
 public enum ErrorCode {
+    DEFAULT(-1, "Error processing"),
     VCS(10, "Error cloning from VCS"),
     MAVEN_METADATA(10, "Could not retrieve maven metadata"),
     BUILD_CLASSPATH(11, "Could not build classpath"),

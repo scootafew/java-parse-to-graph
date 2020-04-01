@@ -21,6 +21,14 @@ public class SpoonedArtifact extends SpoonedMavenProject {
         printDependencies();
     }
 
+    public SpoonedArtifact(Path projectDirectory, Artifact artifact) throws PomFileException {
+        super(projectDirectory);
+        this.artifact = artifact;
+
+        printArtifact(artifact);
+        printDependencies();
+    }
+
     public Artifact getArtifact() {
         return artifact;
     }

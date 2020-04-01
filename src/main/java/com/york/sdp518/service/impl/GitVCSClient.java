@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.TextProgressMonitor;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,14 +29,14 @@ public class GitVCSClient implements VCSClient {
 
     public File clone(String uri) throws VCSClientException {
         File destination = new File("../clones/" + Utils.repoFullNameFromURI(uri));
-        logger.info(">>> Cloning repository into directory \"{}\"", destination.getPath());
-
 
         try {
             if (Utils.isNonEmptyDirectory(destination)) {
                 logger.info("Directory already exists and is non-empty, deleting...");
                 FileUtils.deleteDirectory(destination);
             }
+
+            logger.info("Cloning repository into directory \"{}\"", destination.getPath());
 
             Git.cloneRepository().setProgressMonitor(consoleProgressMonitor)
                     .setDirectory(destination)

@@ -1,7 +1,7 @@
 package com.york.sdp518;
 
-import com.york.sdp518.exception.AlreadyProcessedException;
 import com.york.sdp518.exception.JavaParseToGraphException;
+import com.york.sdp518.exception.NormalExitException;
 import com.york.sdp518.service.impl.GitVCSClient;
 
 import java.io.File;
@@ -17,7 +17,7 @@ public class Main {
         try {
             doAnalysis(uri);
             exit("Processed successfully", NORMAL_EXIT_CODE);
-        } catch (AlreadyProcessedException e) {
+        } catch (NormalExitException e) {
             exit(e.getMessage(), NORMAL_EXIT_CODE);
         } catch (JavaParseToGraphException e) {
             e.printStackTrace();
