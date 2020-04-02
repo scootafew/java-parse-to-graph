@@ -36,6 +36,6 @@ public class SpoonedRepository extends SpoonedMavenProject {
     }
 
     public void printArtifacts() {
-        artifacts.forEach(this::printArtifact);
+        artifacts.forEach(OutputUtils::printArtifact);
     }
 }

@@ -4,15 +4,20 @@ import com.york.sdp518.util.Utils;
 import com.york.sdp518.exception.MavenPluginInvocationException;
 import com.york.sdp518.exception.PomFileException;
 import com.york.sdp518.service.MavenInvoker;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.shared.invoker.InvocationOutputHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class MavenPluginService {
 
@@ -60,6 +65,35 @@ public class MavenPluginService {
         invoker.executeGoals(goal, properties, pomFile);
     }
 
+    public Set<Dependency> getDependencies(File pomFile) throws MavenPluginInvocationException {
+        File outputFile = pomFile.toPath().getParent().resolve("jp2g-dependencies.txt").toFile();
+        getDependencies(pomFile, outputFile);
+
+        try {
+            List<String> fileLines = Utils.readFileSplitNewLine(outputFile);
+            List<String> dependencies = fileLines.subList(2, fileLines.size() - 1);
+
+            return dependencies.stream()
+                    .map(String::trim)
+                    .map(this::dependencyFromString)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toSet());
+        } catch (IOException e) {
+            throw new MavenPluginInvocationException("Error reading dependencies from generated file", e);
+        }
+    }
+
+    public void getDependencies(File pomFile, File outputFile) throws MavenPluginInvocationException {
+        List<String> goal = Collections.singletonList("dependency:list");
+        Properties properties = new Properties();
+        properties.setProperty("excludeTransitive", "true");
+        properties.setProperty("includeScope", "runtime");
+        properties.setProperty("includeScope", "compile");
+        properties.setProperty("outputFile", outputFile.toString());
+        invoker.executeGoals(goal, properties, pomFile);
+    }
+
     public void downloadAndCopyArtifactResources(String artifact, Path dest) throws MavenPluginInvocationException {
         downloadArtifactSources(artifact);
         copyArtifactPom(artifact, dest);
@@ -98,6 +132,22 @@ public class MavenPluginService {
         properties.setProperty("includeScope", "runtime");
 
         invoker.executeGoals(goal, properties);
+    }
+
+    private Optional<Dependency> dependencyFromString(String dep) {
+        Dependency dependency = new Dependency();
+        String[] depComponents = dep.split(":");
+
+        if (depComponents.length > 4) {
+            dependency.setGroupId(depComponents[0]);
+            dependency.setArtifactId(depComponents[1]);
+            dependency.setType(depComponents[2]);
+            dependency.setVersion(depComponents[3]);
+            dependency.setScope(depComponents[4]);
+
+            return Optional.of(dependency);
+        }
+        return Optional.empty();
     }
 
     private static final class VersionOutputHandler implements InvocationOutputHandler {

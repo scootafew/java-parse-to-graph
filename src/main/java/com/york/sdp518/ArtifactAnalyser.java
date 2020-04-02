@@ -61,6 +61,10 @@ public class ArtifactAnalyser {
             throw new BuildClasspathException("Could not build classpath for artifact");
         }
 
+        // print found dependencies
+        spoonedArtifact.printArtifact();
+        spoonedArtifact.printDependencies();
+
         // Process with spoon
         spoonProcessor.process(spoonedArtifact);
     }

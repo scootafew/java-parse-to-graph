@@ -75,11 +75,8 @@ public class RepositoryAnalyser {
             PomModel pom = spoonedRepository.getRootPom();
 
             if (mavenMetadataService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
-                spoonedRepository.printDependencies(true);
                 processAsLibrary(spoonedRepository, repository);
             } else {
-                spoonedRepository.printArtifacts();
-                spoonedRepository.printDependencies();
                 processAsRepository(spoonedRepository, repository);
             }
         }
@@ -92,6 +89,10 @@ public class RepositoryAnalyser {
             mavenPluginService.cleanInstall(spoonedRepository.getRootPomFile(), false);
             spoonedRepository.rebuildClasspath();
         }
+
+        // print discovered artifacts and dependencies
+        spoonedRepository.printArtifacts();
+        spoonedRepository.printDependencies();
 
         // Process with spoon
         SpoonProcessor processor = new SpoonProcessor();
@@ -128,13 +129,14 @@ public class RepositoryAnalyser {
         }
     }
 
-    private Optional<Artifact> getArtifactToProcess(PomModel artifact) {
+    private Optional<Artifact> getArtifactToProcess(PomModel pomModel) {
         try {
-            String version = mavenMetadataService.getLatestVersion(artifact.getGroupId(), artifact.getArtifactId());
-            String fqn = String.join(":", artifact.getGroupId(), artifact.getArtifactId(), version);
+            String version = mavenMetadataService.getLatestVersion(pomModel.getGroupId(), pomModel.getArtifactId());
+            String fqn = String.join(":", pomModel.getGroupId(), pomModel.getArtifactId(), version);
+
             return Optional.of(new Artifact(fqn));
         } catch (MavenMetadataException e) {
-            logger.info("No published artifact found for {}, skipping...", artifact.getArtifactId());
+            logger.info("No published artifact found for {}, skipping...", pomModel.getArtifactId());
         }
         return Optional.empty();
     }

@@ -1,6 +1,9 @@
 package com.york.sdp518.util;
 
+import com.york.sdp518.exception.MavenPluginInvocationException;
 import com.york.sdp518.exception.PomFileException;
+import com.york.sdp518.service.impl.MavenPluginService;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +13,10 @@ import spoon.support.compiler.SpoonPom;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class SpoonedMavenProject extends MavenProject {
@@ -20,6 +26,8 @@ public abstract class SpoonedMavenProject extends MavenProject {
     private MavenLauncher launcher;
     private SpoonPom rootSpoonPom;
     private boolean classpathBuiltSuccessfully;
+
+    private Set<Dependency> dependencies = new HashSet<>();
 
     public SpoonedMavenProject(Path projectDirectory) throws PomFileException {
         super(projectDirectory);
@@ -36,12 +44,16 @@ public abstract class SpoonedMavenProject extends MavenProject {
     }
 
     private Stream<Model> getModelsFromPom(SpoonPom spoonPom) {
+        return this.getAllModulesStream(spoonPom).map(SpoonPom::getModel);
+    }
+
+    private Stream<SpoonPom> getAllModulesStream(SpoonPom spoonPom) {
         if (spoonPom.getModules().isEmpty()) {
-            return Stream.of(spoonPom.getModel());
+            return Stream.of(spoonPom);
         }
         return Stream.concat(
-                Stream.of((spoonPom.getModel())),
-                spoonPom.getModules().stream().flatMap(this::getModelsFromPom)
+                Stream.of(spoonPom),
+                spoonPom.getModules().stream().flatMap(this::getAllModulesStream)
         );
     }
 
@@ -72,5 +84,27 @@ public abstract class SpoonedMavenProject extends MavenProject {
         logger.info("Building model...");
         this.launcher.buildModel();
         return launcher.getModel();
+    }
+
+    @Override
+    public Stream<Dependency> getDependencies() {
+        if (dependencies.isEmpty()) {
+            dependencies.addAll(getAllModulesStream(rootSpoonPom)
+                    .map(SpoonPom::toFile)
+                    .flatMap(this::getDependencies)
+                    .collect(Collectors.toSet())
+            );
+        }
+        return dependencies.stream();
+    }
+
+    private Stream<Dependency> getDependencies(File pomFile) {
+        MavenPluginService mavenPluginService = new MavenPluginService();
+        try {
+            return mavenPluginService.getDependencies(pomFile).stream();
+        } catch (MavenPluginInvocationException e) {
+            logger.warn("Could not get dependencies for POM at {}", pomFile);
+            return Stream.empty();
+        }
     }
 }
