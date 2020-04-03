@@ -22,7 +22,7 @@ FROM maven:3.6.0-jdk-8-slim AS production
 
 WORKDIR /home/app/jp2g
 
-COPY --from=build /home/app/jp2g/target/java-parse-to-graph-1.0-SNAPSHOT.jar jp2g.jar
+COPY --from=build /home/app/jp2g/target/java-parse-to-graph-1.0-SNAPSHOT.jar ./jp2g.jar
 COPY --from=build /home/app/jp2g/target/libs libs
 
-ENTRYPOINT ["java", "-jar","/home/app/jp2g/target/jp2g.jar"]
+ENTRYPOINT ["java", "-jar","/home/app/jp2g/jp2g.jar"]
