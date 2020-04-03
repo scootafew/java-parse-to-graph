@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 @NodeEntity
-public class Class extends Entity {
+public class Type extends Entity {
 
     @Transient
     Map<String, Method> declaredMethodMap = new HashMap<>();
@@ -22,14 +22,14 @@ public class Class extends Entity {
     Collection<Method> declaredMethods;
 
     @Relationship(type = "CALLS")
-    Set<Method> calledMethods;
+    Set<Call> calledMethods;
 
-    public Class() {
+    public Type() {
         declaredMethods = new HashSet<>();
         calledMethods = new HashSet<>();
     }
 
-    public Class(String fullyQualifiedName, String name) {
+    public Type(String fullyQualifiedName, String name) {
         this();
         setFullyQualifiedName(fullyQualifiedName);
         setName(name);
@@ -40,8 +40,8 @@ public class Class extends Entity {
         declaredMethods = declaredMethodMap.values();
     }
 
-    public void addAllCalledMethods(Collection<Method> methods) {
-        calledMethods.addAll(methods);
+    public void addAllCalledMethods(Collection<Call> calls) {
+        calledMethods.addAll(calls);
     }
 
     public Method getDeclaredMethod(String fqn) {
@@ -58,7 +58,7 @@ public class Class extends Entity {
 
         if (o == null || getClass() != o.getClass()) return false;
 
-        Class aClass = (Class) o;
+        Type aClass = (Type) o;
 
         return new EqualsBuilder()
                 .appendSuper(super.equals(o))

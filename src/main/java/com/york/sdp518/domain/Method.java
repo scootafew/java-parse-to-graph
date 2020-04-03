@@ -13,7 +13,7 @@ import java.util.Set;
 public class Method extends Entity {
 
     @Relationship(type = "CALLS")
-    Set<Method> methodCalls = new HashSet<>();
+    Set<Call> methodCalls = new HashSet<>();
 
     boolean declarationDiscovered = false;
 
@@ -27,8 +27,8 @@ public class Method extends Entity {
         setName(name);
     }
 
-    public void addAllMethodCalls(Collection<Method> methods) {
-        methodCalls.addAll(methods);
+    public void addAllMethodCalls(Collection<Call> calls) {
+        methodCalls.addAll(calls);
     }
 
     public void setLineNumber(int lineNumber) {

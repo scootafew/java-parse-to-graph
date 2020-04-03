@@ -1,9 +1,14 @@
 package com.york.sdp518.spoonvisitors;
 
+import com.york.sdp518.domain.Type;
 import spoon.reflect.declaration.CtConstructor;
 import spoon.reflect.declaration.CtMethod;
 
-public class OutsideMethodVisitor extends CalledMethodsVisitor {
+public class OutsideMethodVisitor extends CalledMethodsVisitor<Type> {
+
+    public OutsideMethodVisitor(Type clazz) {
+        super(clazz);
+    }
 
     @Override
     public <T> void visitCtMethod(CtMethod<T> m) {

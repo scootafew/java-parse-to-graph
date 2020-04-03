@@ -1,45 +1,46 @@
 package com.york.sdp518.spoonvisitors;
 
+import com.york.sdp518.domain.Call;
+import com.york.sdp518.domain.Entity;
 import com.york.sdp518.domain.Method;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import spoon.reflect.code.CtExecutableReferenceExpression;
-import spoon.reflect.code.CtExpression;
+import spoon.reflect.declaration.CtElement;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.CtScanner;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
-public class CalledMethodsVisitor extends CtScanner {
+public class CalledMethodsVisitor<T extends Entity> extends CtScanner {
 
     private static final Logger logger = LoggerFactory.getLogger(CalledMethodsVisitor.class);
-    private Set<Method> calledMethods;
 
-    public CalledMethodsVisitor() {
-        calledMethods = new HashSet<>();
+    private T callingEntity;
+    private Map<String, Call> calledMethods;
+
+    public CalledMethodsVisitor(T callingEntity) {
+        this.callingEntity = callingEntity;
+        calledMethods = new HashMap<>();
     }
 
     @Override
-    public <T> void visitCtExecutableReference(CtExecutableReference<T> reference) {
-        logger.debug("Method Call: {}", getQualifiedSignature(reference));
-        calledMethods.add(createMethod(reference));
+    public <K> void visitCtExecutableReference(CtExecutableReference<K> reference) {
+        String fullyQualifiedSignature = getQualifiedSignature(reference);
+        logger.debug("Method Call: {}", fullyQualifiedSignature);
+        Call call = calledMethods.getOrDefault(fullyQualifiedSignature, new Call(callingEntity, createMethod(reference)));
+        call.addLineNumber(getLineNumber(reference));
+        calledMethods.put(fullyQualifiedSignature, call);
         super.visitCtExecutableReference(reference);
     }
 
-    @Override
-    public <T, E extends CtExpression<?>> void visitCtExecutableReferenceExpression(CtExecutableReferenceExpression<T, E> expression) {
-        logger.debug("Method Reference: {}", getQualifiedSignature(expression.getExecutable()));
-        calledMethods.add(createMethod(expression.getExecutable()));
-        super.visitCtExecutableReferenceExpression(expression);
+    public Collection<Call> getCalledMethods() {
+        return calledMethods.values();
     }
 
-    public Set<Method> getCalledMethods() {
-        return calledMethods;
-    }
-
-    private <T> String getQualifiedSignature(CtExecutableReference<T> reference) {
+    private <K> String getQualifiedSignature(CtExecutableReference<K> reference) {
         CtTypeReference<?> dt = reference.getDeclaringType();
         if (dt != null) {
             String qualifier = reference.getDeclaringType().getQualifiedName();
@@ -56,7 +57,16 @@ public class CalledMethodsVisitor extends CtScanner {
         return reference.getSignature();
     }
 
-    private <T> Method createMethod(CtExecutableReference<T> reference) {
+    private <K> Method createMethod(CtExecutableReference<K> reference) {
         return new Method(getQualifiedSignature(reference), reference.getSimpleName());
+    }
+
+    // TODO Verify behaviour
+    private int getLineNumber(CtElement reference) {
+        if (reference.getPosition().isValidPosition()) {
+            return reference.getPosition().getLine();
+        } else {
+            return getLineNumber(reference.getParent());
+        }
     }
 }

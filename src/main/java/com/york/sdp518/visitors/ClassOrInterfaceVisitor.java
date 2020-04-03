@@ -3,7 +3,7 @@ package com.york.sdp518.visitors;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.visitor.VoidVisitor;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-import com.york.sdp518.domain.Class;
+import com.york.sdp518.domain.Type;
 import com.york.sdp518.domain.Method;
 import com.york.sdp518.domain.Package;
 
@@ -23,7 +23,7 @@ public class ClassOrInterfaceVisitor extends VoidVisitorAdapter<Package> {
 
         String fqn = classDeclaration.getFullyQualifiedName()
                 .orElseGet(() -> String.join(".", p.getFullyQualifiedName(), classDeclaration.getNameAsString()));
-        Class c = new Class(fqn, classDeclaration.getNameAsString());
+        Type c = new Type(fqn, classDeclaration.getNameAsString());
 
         Set<Method> declaredMethods = new HashSet<>();
         methodDeclarationVisitor.visit(classDeclaration, declaredMethods);
@@ -33,7 +33,7 @@ public class ClassOrInterfaceVisitor extends VoidVisitorAdapter<Package> {
         methodReferenceVisitor.visit(classDeclaration, calledMethods);
 
         c.addAllDeclaredMethods(declaredMethods);
-        c.addAllCalledMethods(calledMethods);
+//        c.addAllCalledMethods(calledMethods);
 
         p.addClass(c);
     }

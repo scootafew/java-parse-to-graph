@@ -16,7 +16,7 @@ public class Package extends Entity {
     Set<Package> packages;
 
     @Relationship(type = "CONTAINS")
-    Set<Class> classes;
+    Set<Type> classes;
 
     public Package() {
         this.packages = new HashSet<>();
@@ -37,11 +37,11 @@ public class Package extends Entity {
         return packages;
     }
 
-    public void addClass(Class c) {
+    public void addClass(Type c) {
         this.classes.add(c);
     }
 
-    public Set<Class> getClasses() {
+    public Set<Type> getClasses() {
         return classes;
     }
 

@@ -1,7 +1,8 @@
 package com.york.sdp518.processor;
 
 import com.york.sdp518.Neo4jSessionFactory;
-import com.york.sdp518.domain.Class;
+import com.york.sdp518.domain.Call;
+import com.york.sdp518.domain.Type;
 import com.york.sdp518.domain.Method;
 import com.york.sdp518.service.Neo4jService;
 import com.york.sdp518.spoonvisitors.CalledMethodsVisitor;
@@ -10,8 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spoon.reflect.declaration.CtMethod;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Collection;
 
 public class MethodProcessor {
 
@@ -45,19 +45,18 @@ public class MethodProcessor {
 
 //        System.out.println("PROCESSING_CALL: " + fullyQualifiedSignature);
 
-        CalledMethodsVisitor calledMethodsVisitor = new CalledMethodsVisitor();
+        CalledMethodsVisitor<Method> calledMethodsVisitor = new CalledMethodsVisitor<>(declaredMethod);
         method.accept(calledMethodsVisitor);
 
         Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
-        Set<Method> calledMethodsFromDB = calledMethodsVisitor.getCalledMethods().stream()
-                .map(m -> methodService.find(m.getFullyQualifiedName()).orElse(m))
-                .collect(Collectors.toSet());
+        Collection<Call> calls = calledMethodsVisitor.getCalledMethods();
+        calls.forEach(c -> methodService.find(c.getEndMethod().getFullyQualifiedName()).ifPresent(c::setEndMethod));
 
-        declaredMethod.addAllMethodCalls(calledMethodsFromDB);
+        declaredMethod.addAllMethodCalls(calls);
         session.save(declaredMethod);
     }
 
-    public Method processMethodCalls2(Class clazz, CtMethod<?> method) {
+    public Method processMethodCalls2(Type clazz, CtMethod<?> method) {
         String fullyQualifiedSignature = buildFullyQualifiedSignature(method);
 //        Method declaredMethod = methodService.find(fullyQualifiedSignature)
 //                .orElse(new Method(fullyQualifiedSignature, method.getSimpleName()));
@@ -65,14 +64,13 @@ public class MethodProcessor {
 
 //        System.out.println("PROCESSING_CALL: " + fullyQualifiedSignature);
 
-        CalledMethodsVisitor calledMethodsVisitor = new CalledMethodsVisitor();
+        CalledMethodsVisitor<Method> calledMethodsVisitor = new CalledMethodsVisitor<>(declaredMethod);
         method.accept(calledMethodsVisitor);
 
-        Set<Method> calledMethodsFromDB = calledMethodsVisitor.getCalledMethods().stream()
-                .map(m -> methodService.find(m.getFullyQualifiedName()).orElse(m))
-                .collect(Collectors.toSet());
+        Collection<Call> calls = calledMethodsVisitor.getCalledMethods();
+        calls.forEach(c -> methodService.find(c.getEndMethod().getFullyQualifiedName()).ifPresent(c::setEndMethod));
 
-        declaredMethod.addAllMethodCalls(calledMethodsFromDB);
+        declaredMethod.addAllMethodCalls(calls);
         return declaredMethod;
     }
 
