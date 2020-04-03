@@ -58,7 +58,6 @@ public abstract class MavenProject {
 
     abstract Stream<Dependency> getDependencies();
 
-
     /**
      * Prints dependencies
      */
@@ -68,30 +67,4 @@ public abstract class MavenProject {
                 .forEach(OutputUtils::printDependency);
     }
 
-//    /**
-//     * Returns true if dependency is a locally declared artifact
-//     * @param dep
-//     * @return
-//     */
-//    private boolean isLocalDependency(Dependency dep) {
-//        return getAllModulesStream().anyMatch(pomModel -> pomModel.getGroupId().equals(dep.getGroupId()) &&
-//                pomModel.getArtifactId().equals(dep.getArtifactId()));
-//    }
-
-//    private void printDependency(Dependency dep) {
-//        String version = dep.getVersion();
-//        if (version.startsWith("${") && version.endsWith("}")) {
-//            if (version.equals("${project.version}")) {
-//                version = getRootPom().getVersion();
-//            } else {
-//                return;
-//            }
-//        }
-//        String fqn = String.join(":", dep.getGroupId(), dep.getArtifactId(), version);
-//        System.out.println("Found maven dependency: " + fqn);
-//    }
-//
-//    void printArtifact(Artifact artifact) {
-//        System.out.println("Found maven artifact: " + artifact.getFullyQualifiedName());
-//    }
 }
