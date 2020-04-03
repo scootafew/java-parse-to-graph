@@ -7,7 +7,6 @@ import com.york.sdp518.domain.Method;
 import com.york.sdp518.domain.Package;
 import com.york.sdp518.service.Neo4jService;
 import com.york.sdp518.service.impl.MethodNeo4jService;
-import com.york.sdp518.service.impl.TypeNeo4jService;
 import com.york.sdp518.spoonvisitors.OutsideMethodVisitor;
 import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
