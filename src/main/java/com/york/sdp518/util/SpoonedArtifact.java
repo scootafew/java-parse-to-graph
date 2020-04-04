@@ -2,6 +2,7 @@ package com.york.sdp518.util;
 
 import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.exception.PomFileException;
+import com.york.sdp518.service.impl.MavenDependencyManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,13 +14,14 @@ public class SpoonedArtifact extends SpoonedMavenProject {
 
     private Artifact artifact;
 
-    public SpoonedArtifact(Path projectDirectory) throws PomFileException {
-        super(projectDirectory);
+    public SpoonedArtifact(Path projectDirectory, MavenDependencyManagementService dms) throws PomFileException {
+        super(projectDirectory, dms);
         this.artifact = getRootPom().asArtifact();
     }
 
-    public SpoonedArtifact(Path projectDirectory, Artifact artifact) throws PomFileException {
-        super(projectDirectory);
+    public SpoonedArtifact(Path projectDirectory, Artifact artifact,
+                           MavenDependencyManagementService dms) throws PomFileException {
+        super(projectDirectory, dms);
         this.artifact = artifact;
     }
 

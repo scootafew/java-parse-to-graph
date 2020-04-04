@@ -2,17 +2,34 @@ package com.york.sdp518;
 
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.exception.NormalExitException;
-import com.york.sdp518.service.impl.GitVCSClient;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.io.File;
 import java.io.PrintStream;
 
-public class Main {
+@SpringBootApplication
+public class Main implements CommandLineRunner  {
 
     private static final int NORMAL_EXIT_CODE = 0;
     private static final int ERROR_EXIT_CODE = 1;
 
+    private RepositoryAnalyser repositoryAnalyser;
+    private ArtifactAnalyser artifactAnalyser;
+
+    public Main(RepositoryAnalyser repositoryAnalyser, ArtifactAnalyser artifactAnalyser) {
+        this.repositoryAnalyser = repositoryAnalyser;
+        this.artifactAnalyser = artifactAnalyser;
+    }
+
+
     public static void main(String[] args) {
+        SpringApplication.run(Main.class, args);
+    }
+
+    @Override
+    public void run(String... args) {
         String uri = args[0];
         try {
             doAnalysis(uri);
@@ -31,14 +48,14 @@ public class Main {
         }
     }
 
-    private static void doAnalysis(String uri) throws JavaParseToGraphException {
+    private void doAnalysis(String uri) throws JavaParseToGraphException {
         try {
             if (uri.endsWith(".git")) {
-                RepositoryAnalyser repositoryAnalyser = new RepositoryAnalyser(new GitVCSClient());
                 repositoryAnalyser.analyseRepository(uri);
-            } else {
-                ArtifactAnalyser artifactAnalyser = new ArtifactAnalyser();
+            } else if (uri.contains(":")) {
                 artifactAnalyser.analyseArtifact(uri);
+            } else {
+                throw new UnsupportedOperationException("Currently can only process Git repositories or Maven artifacts");
             }
         } finally {
             Neo4jSessionFactory.getInstance().close();

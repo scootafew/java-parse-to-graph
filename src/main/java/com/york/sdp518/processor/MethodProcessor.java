@@ -9,16 +9,20 @@ import com.york.sdp518.spoonvisitors.CalledMethodsVisitor;
 import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import spoon.reflect.declaration.CtMethod;
 
 import java.util.Collection;
 
+@Component
 public class MethodProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(MethodProcessor.class);
 
     private Neo4jService<Method> methodService;
 
+    @Autowired
     public MethodProcessor(Neo4jService<Method> methodService) {
         this.methodService = methodService;
     }

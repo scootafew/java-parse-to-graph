@@ -2,6 +2,7 @@ package com.york.sdp518.util;
 
 import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.exception.PomFileException;
+import com.york.sdp518.service.impl.MavenDependencyManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,8 +18,9 @@ public class SpoonedRepository extends SpoonedMavenProject {
     private String remoteUrl;
     private Set<Artifact> artifacts;
 
-    public SpoonedRepository(Path projectDirectory, String remoteUrl) throws PomFileException {
-        super(projectDirectory);
+    public SpoonedRepository(Path projectDirectory, String remoteUrl,
+                             MavenDependencyManagementService dms) throws PomFileException {
+        super(projectDirectory, dms);
         this.remoteUrl = remoteUrl;
         this.artifacts = getAllModules().stream().map(PomModel::asArtifact).collect(Collectors.toSet());
     }

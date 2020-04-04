@@ -6,8 +6,13 @@ import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.session.SessionFactory;
 
 public class Neo4jSessionFactory {
+    private static final String NEO4J_URI = Utils.getPropertyOrEnv("NEO4J_URI", true);
+    private static final String NEO4J_USERNAME = Utils.getPropertyOrEnv("NEO4J_USERNAME", true);
+    private static final String NEO4J_PASSWORD = Utils.getPropertyOrEnv("NEO4J_PASSWORD", true);
+
     private static Configuration config = new Configuration.Builder()
-            .uri(Utils.getPropertyOrEnv("NEO4J_URI", true))
+            .uri(NEO4J_URI)
+            .credentials(NEO4J_USERNAME, NEO4J_PASSWORD)
             .verifyConnection(true)
             .build();
     private static SessionFactory sessionFactory = new SessionFactory(config, "com.york.sdp518.domain");

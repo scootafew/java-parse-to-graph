@@ -1,6 +1,6 @@
 package com.york.sdp518.exception;
 
-public class MavenPluginInvocationException extends JavaParseToGraphException {
+public class MavenPluginInvocationException extends DependencyManagementServiceException {
 
     public MavenPluginInvocationException(String message, Throwable cause) {
         super(message, cause, ErrorCode.MAVEN_INVOCATION);

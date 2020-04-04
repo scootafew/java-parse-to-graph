@@ -11,23 +11,26 @@ import com.york.sdp518.spoonvisitors.OutsideMethodVisitor;
 import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import spoon.reflect.declaration.CtType;
 
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Service
 public class TypeProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(TypeProcessor.class);
 
-    private Neo4jService<Method> methodService = new MethodNeo4jService();
+    private Neo4jService<Method> methodService;
     private MethodProcessor methodProcessor;
 
     boolean useOldMethod = false;
 
-    public TypeProcessor() {
-        this.methodProcessor = new MethodProcessor(methodService);
+    public TypeProcessor(MethodProcessor methodProcessor, Neo4jService<Method> methodService) {
+        this.methodProcessor = methodProcessor;
+        this.methodService = methodService;
     }
 
     public void processTypes(Collection<CtType<?>> types) {

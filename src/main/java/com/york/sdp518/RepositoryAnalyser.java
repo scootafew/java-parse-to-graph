@@ -4,13 +4,12 @@ import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.domain.ProcessingState;
 import com.york.sdp518.domain.Repository;
 import com.york.sdp518.exception.AlreadyProcessedException;
+import com.york.sdp518.exception.DependencyManagementServiceException;
 import com.york.sdp518.exception.JavaParseToGraphException;
-import com.york.sdp518.exception.MavenMetadataException;
 import com.york.sdp518.exception.PartialProcessingFailureException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.VCSClient;
-import com.york.sdp518.service.impl.MavenMetadataService;
-import com.york.sdp518.service.impl.MavenPluginService;
+import com.york.sdp518.service.impl.MavenDependencyManagementService;
 import com.york.sdp518.service.impl.Neo4jServiceUtils;
 import com.york.sdp518.util.SpoonedRepository;
 import com.york.sdp518.util.Packaging;
@@ -18,6 +17,8 @@ import com.york.sdp518.util.PomModel;
 import com.york.sdp518.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -28,20 +29,23 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Component
 public class RepositoryAnalyser {
 
     private static final Logger logger = LoggerFactory.getLogger(RepositoryAnalyser.class);
 
     private VCSClient vcsClient;
-    private MavenPluginService mavenPluginService;
-    private MavenMetadataService mavenMetadataService;
+    private MavenDependencyManagementService mavenService;
     private ArtifactAnalyser artifactAnalyser;
+    private SpoonProcessor spoonProcessor;
 
-    public RepositoryAnalyser(VCSClient vcsClient) {
+    @Autowired
+    public RepositoryAnalyser(VCSClient vcsClient, MavenDependencyManagementService mavenService,
+                              ArtifactAnalyser artifactAnalyser, SpoonProcessor spoonProcessor) {
         this.vcsClient = vcsClient;
-        this.mavenPluginService = new MavenPluginService();
-        this.mavenMetadataService = new MavenMetadataService();
-        this.artifactAnalyser = new ArtifactAnalyser();
+        this.mavenService = mavenService;
+        this.artifactAnalyser = artifactAnalyser;
+        this.spoonProcessor = spoonProcessor;
     }
 
     public void analyseRepository(String uri) throws JavaParseToGraphException {
@@ -71,10 +75,10 @@ public class RepositoryAnalyser {
         Collection<Path> directoriesWithPom = Utils.getDirectoriesWithPom(projectDirectory);
 
         for (Path path : directoriesWithPom) {
-            SpoonedRepository spoonedRepository = new SpoonedRepository(path, repository.getUrl());
+            SpoonedRepository spoonedRepository = new SpoonedRepository(path, repository.getUrl(), mavenService);
             PomModel pom = spoonedRepository.getRootPom();
 
-            if (mavenMetadataService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
+            if (mavenService.isPublishedArtifact(pom.getGroupId(), pom.getArtifactId())) {
                 processAsLibrary(spoonedRepository, repository);
             } else {
                 processAsRepository(spoonedRepository, repository);
@@ -86,7 +90,7 @@ public class RepositoryAnalyser {
     private void processAsRepository(SpoonedRepository spoonedRepository, Repository repository) throws JavaParseToGraphException {
         logger.info("Processing project {} as repository", spoonedRepository.getProjectName());
         if (spoonedRepository.classpathNotBuiltSuccessfully()) {
-            mavenPluginService.cleanInstall(spoonedRepository.getRootPomFile(), false);
+            mavenService.build(spoonedRepository.getRootPomFile(), false);
             spoonedRepository.rebuildClasspath();
         }
 
@@ -95,8 +99,7 @@ public class RepositoryAnalyser {
         spoonedRepository.printDependencies();
 
         // Process with spoon
-        SpoonProcessor processor = new SpoonProcessor();
-        processor.process(spoonedRepository);
+        spoonProcessor.process(spoonedRepository);
 
         spoonedRepository.getArtifacts().forEach(artifact -> artifact.setProcessingState(ProcessingState.COMPLETED));
         repository.addAllArtifacts(spoonedRepository.getArtifacts());
@@ -131,11 +134,11 @@ public class RepositoryAnalyser {
 
     private Optional<Artifact> getArtifactToProcess(PomModel pomModel) {
         try {
-            String version = mavenMetadataService.getLatestVersion(pomModel.getGroupId(), pomModel.getArtifactId());
+            String version = mavenService.getLatestVersion(pomModel.getGroupId(), pomModel.getArtifactId());
             String fqn = String.join(":", pomModel.getGroupId(), pomModel.getArtifactId(), version);
 
             return Optional.of(new Artifact(fqn));
-        } catch (MavenMetadataException e) {
+        } catch (DependencyManagementServiceException e) {
             logger.info("No published artifact found for {}, skipping...", pomModel.getArtifactId());
         }
         return Optional.empty();
@@ -152,30 +155,30 @@ public class RepositoryAnalyser {
         return artifact;
     }
 
-    @Deprecated
-    private String checkVersionAlignment(Path projectPath) throws JavaParseToGraphException {
-        File pomFile = projectPath.resolve("pom.xml").toFile();
-        PomModel pomModel = new PomModel(pomFile);
-
-        String groupId = pomModel.getGroupId();
-        String artifactId = pomModel.getArtifactId();
-
-        String localProjectVersion = mavenPluginService.getProjectVersion(pomFile);
-
-        // If project is on maven central, modules may depend on each other so ensure versioning is consistent
-        try {
-            String latestVersion = mavenMetadataService.getLatestVersion(groupId, artifactId);
-
-            logger.info("Local project version is: {}, latest version is {}", localProjectVersion, latestVersion);
-
-            if (!localProjectVersion.equals(latestVersion)) {
-                mavenPluginService.setVersion(pomFile, latestVersion);
-                return latestVersion;
-            }
-        } catch (MavenMetadataException e) {
-            logger.info(e.getMessage());
-        }
-
-        return localProjectVersion;
-    }
+//    @Deprecated
+//    private String checkVersionAlignment(Path projectPath) throws JavaParseToGraphException {
+//        File pomFile = projectPath.resolve("pom.xml").toFile();
+//        PomModel pomModel = new PomModel(pomFile);
+//
+//        String groupId = pomModel.getGroupId();
+//        String artifactId = pomModel.getArtifactId();
+//
+//        String localProjectVersion = mavenService.getProjectVersion(pomFile);
+//
+//        // If project is on maven central, modules may depend on each other so ensure versioning is consistent
+//        try {
+//            String latestVersion = mavenService.getLatestVersion(groupId, artifactId);
+//
+//            logger.info("Local project version is: {}, latest version is {}", localProjectVersion, latestVersion);
+//
+//            if (!localProjectVersion.equals(latestVersion)) {
+//                mavenService.setVersion(pomFile, latestVersion);
+//                return latestVersion;
+//            }
+//        } catch (MavenMetadataException e) {
+//            logger.info(e.getMessage());
+//        }
+//
+//        return localProjectVersion;
+//    }
 }

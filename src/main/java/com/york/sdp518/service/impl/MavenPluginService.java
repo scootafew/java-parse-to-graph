@@ -1,5 +1,7 @@
 package com.york.sdp518.service.impl;
 
+import com.york.sdp518.domain.Artifact;
+import com.york.sdp518.util.PomModel;
 import com.york.sdp518.util.Utils;
 import com.york.sdp518.exception.MavenPluginInvocationException;
 import com.york.sdp518.exception.PomFileException;
@@ -8,10 +10,13 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.shared.invoker.InvocationOutputHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -19,18 +24,15 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Service
 public class MavenPluginService {
 
     private static final Logger logger = LoggerFactory.getLogger(MavenPluginService.class);
 
-    private static final String MAVEN_HOME_ENV_VAR = "M2_HOME";
-    private static final File MAVEN_HOME = new File(Utils.getPropertyOrEnv(MAVEN_HOME_ENV_VAR, true));
-
     private MavenInvoker invoker;
 
-    public MavenPluginService() {
-        invoker = new MavenInvoker();
-        invoker.setMavenHome(MAVEN_HOME);
+    public MavenPluginService(MavenInvoker mavenInvoker) {
+        invoker = mavenInvoker;
     }
 
     public String getProjectVersion(File pomFile) throws PomFileException, MavenPluginInvocationException {
@@ -84,7 +86,7 @@ public class MavenPluginService {
         }
     }
 
-    public void getDependencies(File pomFile, File outputFile) throws MavenPluginInvocationException {
+    private void getDependencies(File pomFile, File outputFile) throws MavenPluginInvocationException {
         List<String> goal = Collections.singletonList("dependency:list");
         Properties properties = new Properties();
         properties.setProperty("excludeTransitive", "true");
@@ -94,13 +96,26 @@ public class MavenPluginService {
         invoker.executeGoals(goal, properties, pomFile);
     }
 
-    public void downloadAndCopyArtifactResources(String artifact, Path dest) throws MavenPluginInvocationException {
-        downloadArtifactSources(artifact);
-        copyArtifactPom(artifact, dest);
-        copyArtifactSources(artifact, dest);
+    public Path getSources(Artifact artifact) throws MavenPluginInvocationException {
+        // Download sources from Maven
+        File destination = new File("../artifacts/maven/" + artifact.getArtifactId());
+        Path destPath = Paths.get(destination.toURI()).normalize();
+
+        downloadArtifactSources(artifact.getFullyQualifiedName());
+        copyArtifactPom(artifact.getFullyQualifiedName(), destPath);
+        copyArtifactSources(artifact.getFullyQualifiedName(), destPath);
+
+        String pomFile = String.format("%s-%s.pom", artifact.getArtifactId(), artifact.getVersion());
+        String sourcesFile = String.format("%s-%s-sources.jar", artifact.getArtifactId(), artifact.getVersion());
+        Path pomPath = destPath.resolve(pomFile);
+        Path jarPath = destPath.resolve(sourcesFile);
+
+        refactorToExpectedStructure(destPath, pomPath, jarPath);
+//        setVersion(dest.resolve("pom.xml").toFile(), artifact.getVersion());
+        return destPath;
     }
 
-    public void downloadArtifactSources(String artifact) throws MavenPluginInvocationException {
+    private void downloadArtifactSources(String artifact) throws MavenPluginInvocationException {
         List<String> goal = Collections.singletonList("dependency:get");
         Properties properties = new Properties();
         properties.setProperty("artifact", artifact + ":jar:sources");
@@ -108,7 +123,7 @@ public class MavenPluginService {
         invoker.executeGoals(goal, properties);
     }
 
-    public void copyArtifactPom(String artifact, Path dest) throws MavenPluginInvocationException {
+    private void copyArtifactPom(String artifact, Path dest) throws MavenPluginInvocationException {
         List<String> goal = Collections.singletonList("dependency:copy");
         Properties properties = new Properties();
         properties.setProperty("artifact", artifact + ":pom");
@@ -117,7 +132,7 @@ public class MavenPluginService {
         invoker.executeGoals(goal, properties);
     }
 
-    public void copyArtifactSources(String artifact, Path dest) throws MavenPluginInvocationException {
+    private void copyArtifactSources(String artifact, Path dest) throws MavenPluginInvocationException {
         List<String> goal = Collections.singletonList("dependency:copy");
         Properties properties = new Properties();
         properties.setProperty("artifact", artifact + ":jar:sources");
@@ -148,6 +163,38 @@ public class MavenPluginService {
             return Optional.of(dependency);
         }
         return Optional.empty();
+    }
+
+    private void refactorToExpectedStructure(Path destinationPath, Path pomPath, Path jarPath) {
+        try {
+            // Rename pom
+            Path pom = destinationPath.resolve(pomPath);
+            Files.move(pom, pom.resolveSibling("pom.xml"));
+
+            // Read source directory structure from POM
+            Path sourceDirectoryPath = getSourceDirectoryPath(destinationPath.resolve("pom.xml").toFile());
+            File sourceDirectory = destinationPath.resolve(sourceDirectoryPath).toFile();
+            sourceDirectory.mkdirs(); // create source directory structure
+
+            // Unpack jar
+            ProcessBuilder processBuilder = new ProcessBuilder("jar", "-xf", jarPath.toString());
+            processBuilder.directory(sourceDirectory);
+            Process process = processBuilder.start();
+            process.waitFor(); // wait for process to finish
+
+            // Delete jar
+            Files.delete(jarPath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Path getSourceDirectoryPath(File pomFile) throws PomFileException {
+        PomModel pomModel = new PomModel(pomFile);
+        if (pomModel.getSourceDirectory() != null) {
+            return Paths.get(pomModel.getSourceDirectory());
+        }
+        return Paths.get("src/main/java");
     }
 
     private static final class VersionOutputHandler implements InvocationOutputHandler {

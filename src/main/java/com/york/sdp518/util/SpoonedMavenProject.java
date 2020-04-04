@@ -1,8 +1,8 @@
 package com.york.sdp518.util;
 
-import com.york.sdp518.exception.MavenPluginInvocationException;
+import com.york.sdp518.exception.DependencyManagementServiceException;
 import com.york.sdp518.exception.PomFileException;
-import com.york.sdp518.service.impl.MavenPluginService;
+import com.york.sdp518.service.impl.MavenDependencyManagementService;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.slf4j.Logger;
@@ -27,10 +27,13 @@ public abstract class SpoonedMavenProject extends MavenProject {
     private SpoonPom rootSpoonPom;
     private boolean classpathBuiltSuccessfully;
 
+    private MavenDependencyManagementService depManagementService; // TODO Move service out
     private Set<Dependency> dependencies = new HashSet<>();
 
-    public SpoonedMavenProject(Path projectDirectory) throws PomFileException {
+    public SpoonedMavenProject(Path projectDirectory,
+                               MavenDependencyManagementService depManagementService) throws PomFileException {
         super(projectDirectory);
+        this.depManagementService = depManagementService;
         this.launcher = new MavenLauncher(projectDirectory.toString(), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         this.launcher.getEnvironment().setComplianceLevel(11);  // Max currently supported by Spoon
         // launcher.getEnvironment().setLevel(Level.INFO.name());
@@ -99,10 +102,9 @@ public abstract class SpoonedMavenProject extends MavenProject {
     }
 
     private Stream<Dependency> getDependencies(File pomFile) {
-        MavenPluginService mavenPluginService = new MavenPluginService();
         try {
-            return mavenPluginService.getDependencies(pomFile).stream();
-        } catch (MavenPluginInvocationException e) {
+            return depManagementService.getDependencies(pomFile).stream();
+        } catch (DependencyManagementServiceException e) {
             logger.warn("Could not get dependencies for POM at {}", pomFile);
             return Stream.empty();
         }

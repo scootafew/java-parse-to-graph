@@ -1,6 +1,6 @@
 package com.york.sdp518.exception;
 
-public class MavenMetadataException extends JavaParseToGraphException {
+public class MavenMetadataException extends DependencyManagementServiceException {
 
     public MavenMetadataException(String message, Throwable cause) {
         super(message, cause, ErrorCode.MAVEN_METADATA);

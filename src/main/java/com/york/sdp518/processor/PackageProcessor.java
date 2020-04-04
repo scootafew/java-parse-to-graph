@@ -7,18 +7,22 @@ import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import spoon.reflect.declaration.CtPackage;
 
 import java.util.Collection;
 
+@Component
 public class PackageProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(PackageProcessor.class);
 
     private TypeProcessor typeProcessor;
 
-    public PackageProcessor() {
-        this.typeProcessor = new TypeProcessor();
+    @Autowired
+    public PackageProcessor(TypeProcessor typeProcessor) {
+        this.typeProcessor = typeProcessor;
     }
 
     public void processPackages(Collection<CtPackage> packages) {

@@ -10,12 +10,14 @@ import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
 
+@Service
 public class GitVCSClient implements VCSClient {
 
     private static final Logger logger = LoggerFactory.getLogger(GitVCSClient.class);
@@ -33,7 +35,8 @@ public class GitVCSClient implements VCSClient {
         try {
             if (Utils.isNonEmptyDirectory(destination)) {
                 logger.info("Directory already exists and is non-empty, deleting...");
-                FileUtils.deleteDirectory(destination);
+//                FileUtils.deleteDirectory(destination);
+                return destination; // TODO dev only remove for prod
             }
 
             logger.info("Cloning repository into directory \"{}\"", destination.getPath());
@@ -48,8 +51,8 @@ public class GitVCSClient implements VCSClient {
             logger.info("Cloned project to {}", projectPath);
 
             return destination;
-        } catch (IOException e) {
-            throw new VCSClientException("Directory already exists and could not be deleted", e);
+//        } catch (IOException e) {
+//            throw new VCSClientException("Directory already exists and could not be deleted", e);
         } catch (GitAPIException e) {
             throw new VCSClientException("Error while cloning git repository", e);
         }

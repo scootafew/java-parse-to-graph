@@ -1,9 +1,9 @@
 package com.york.sdp518.service.impl;
 
 import com.york.sdp518.exception.MavenMetadataException;
-import com.york.sdp518.service.MetadataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
@@ -17,7 +17,8 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class MavenMetadataService implements MetadataService {
+@Service
+public class MavenMetadataService {
 
     private static final Logger logger = LoggerFactory.getLogger(MavenMetadataService.class);
 
@@ -45,13 +46,23 @@ public class MavenMetadataService implements MetadataService {
     }
 
     // https://stackoverflow.com/questions/2461864/can-i-check-if-a-file-exists-at-a-url
-    public boolean isPublishedArtifact(String groupId, String artifactId) {
+    // TODO Should retry before failing
+    public boolean isPublishedArtifact(String groupId, String artifactId) throws MavenMetadataException {
         try {
             final URL url = new URL(buildURL(groupId, artifactId));
             HttpURLConnection huc = (HttpURLConnection) url.openConnection();
-            return huc.getResponseCode() == HttpURLConnection.HTTP_OK;
+
+            switch (huc.getResponseCode()) {
+                case HttpURLConnection.HTTP_OK:
+                    return true;
+                case HttpURLConnection.HTTP_NOT_FOUND:
+                    return false;
+                default:
+                    throw new MavenMetadataException("Unexpected status code from Maven Central");
+            }
         } catch (IOException e) {
-            return false;
+            logger.warn("Error contacting Maven Central");
+            throw new MavenMetadataException("Error contacting Maven Central", e);
         }
     }
 
