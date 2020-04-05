@@ -16,11 +16,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Service
 public class GitVCSClient implements VCSClient {
 
     private static final Logger logger = LoggerFactory.getLogger(GitVCSClient.class);
+
+    private static final String CLONE_PATH = "../clones";
 
     // TODO Remove - only needed for cloning private repo in test
 //    private static final String GIT_USERNAME = Utils.getPropertyOrEnv("GIT_USERNAME", true);
@@ -30,13 +34,13 @@ public class GitVCSClient implements VCSClient {
     private TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
 
     public File clone(String uri) throws VCSClientException {
-        File destination = new File("../clones/" + Utils.repoFullNameFromURI(uri));
+        Path destinationPath = Paths.get(CLONE_PATH, Utils.repoFullNameFromURI(uri));
+        File destination = new File(destinationPath.toString());
 
         try {
             if (Utils.isNonEmptyDirectory(destination)) {
                 logger.info("Directory already exists and is non-empty, deleting...");
-//                FileUtils.deleteDirectory(destination);
-                return destination; // TODO dev only remove for prod
+                FileUtils.deleteDirectory(destination);
             }
 
             logger.info("Cloning repository into directory \"{}\"", destination.getPath());
@@ -51,8 +55,8 @@ public class GitVCSClient implements VCSClient {
             logger.info("Cloned project to {}", projectPath);
 
             return destination;
-//        } catch (IOException e) {
-//            throw new VCSClientException("Directory already exists and could not be deleted", e);
+        } catch (IOException e) {
+            throw new VCSClientException("Directory already exists and could not be deleted", e);
         } catch (GitAPIException e) {
             throw new VCSClientException("Error while cloning git repository", e);
         }
