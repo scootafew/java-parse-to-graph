@@ -14,6 +14,7 @@ public class Neo4jSessionFactory {
             .uri(NEO4J_URI)
             .credentials(NEO4J_USERNAME, NEO4J_PASSWORD)
             .verifyConnection(true)
+            .autoIndex("update") // TODO Handle index creation at DB init time
             .build();
     private static SessionFactory sessionFactory = new SessionFactory(config, "com.york.sdp518.domain");
     private static Neo4jSessionFactory factory = new Neo4jSessionFactory();
