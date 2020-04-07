@@ -11,6 +11,7 @@ import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.VCSClient;
 import com.york.sdp518.service.impl.MavenDependencyManagementService;
 import com.york.sdp518.service.impl.Neo4jServiceUtils;
+import com.york.sdp518.util.OutputUtils;
 import com.york.sdp518.util.SpoonedRepository;
 import com.york.sdp518.util.Packaging;
 import com.york.sdp518.util.PomModel;
@@ -110,26 +111,31 @@ public class RepositoryAnalyser {
 
         Set<PomModel> jarPackagedArtifacts = spoonedRepository.getAllModules(Collections.singletonList(Packaging.JAR));
 
-        Set<Artifact> processedArtifacts = jarPackagedArtifacts.stream()
+        Set<Artifact> artifactsToProcess = spoonedRepository.getAllModules(Collections.singletonList(Packaging.JAR))
+                .stream()
                 .map(this::getArtifactToProcess)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .map(this::processArtifact)
                 .collect(Collectors.toSet());
 
-        processedArtifacts.forEach(repository::addArtifact);
-        long failedCount = processedArtifacts.stream()
-                .filter(artifact -> artifact.getProcessingState().equals(ProcessingState.FAILED))
-                .count();
+        artifactsToProcess.forEach(OutputUtils::printArtifact); // output all so other instances can contribute if free
 
-        if (failedCount > 0) {
-            if (failedCount == processedArtifacts.size()) {
-                throw new JavaParseToGraphException("Processing failed for all artifacts in repository");
-            }
-            String message = String.format("Processing failed for %s/%s artifacts in repository",
-                    failedCount, processedArtifacts.size());
-            throw new PartialProcessingFailureException(message);
-        }
+        artifactsToProcess.stream()
+                .map(this::processArtifact)
+                .forEach(repository::addArtifact);
+
+//        long failedCount = processedArtifacts.stream()
+//                .filter(artifact -> artifact.getProcessingState().equals(ProcessingState.FAILED))
+//                .count();
+//
+//        if (failedCount > 0) {
+//            if (failedCount == processedArtifacts.size()) {
+//                throw new JavaParseToGraphException("Processing failed for all artifacts in repository");
+//            }
+//            String message = String.format("Processing failed for %s/%s artifacts in repository",
+//                    failedCount, processedArtifacts.size());
+//            throw new PartialProcessingFailureException(message);
+//        }
     }
 
     private Optional<Artifact> getArtifactToProcess(PomModel pomModel) {
