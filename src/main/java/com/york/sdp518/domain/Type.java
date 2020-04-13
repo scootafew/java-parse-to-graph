@@ -22,7 +22,7 @@ public class Type extends Entity {
     Collection<Method> declaredMethods;
 
     @Relationship(type = "CALLS")
-    Set<Call> calledMethods;
+    Set<Method> calledMethods;
 
     public Type() {
         declaredMethods = new HashSet<>();
@@ -40,7 +40,7 @@ public class Type extends Entity {
         declaredMethods = declaredMethodMap.values();
     }
 
-    public void addAllCalledMethods(Collection<Call> calls) {
+    public void addAllCalledMethods(Collection<Method> calls) {
         calledMethods.addAll(calls);
     }
 
@@ -50,6 +50,10 @@ public class Type extends Entity {
 
     public Collection<Method> getDeclaredMethods() {
         return declaredMethods;
+    }
+
+    public Map<String, Method> getDeclaredMethodMap() {
+        return declaredMethodMap;
     }
 
     @Override

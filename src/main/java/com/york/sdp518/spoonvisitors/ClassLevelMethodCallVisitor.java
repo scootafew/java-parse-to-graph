@@ -1,13 +1,16 @@
 package com.york.sdp518.spoonvisitors;
 
-import com.york.sdp518.domain.Type;
+import com.york.sdp518.domain.Method;
+import com.york.sdp518.service.impl.Neo4jServiceFactory;
 import spoon.reflect.declaration.CtConstructor;
 import spoon.reflect.declaration.CtMethod;
 
-public class OutsideMethodVisitor extends CalledMethodsVisitor<Type> {
+import java.util.Map;
 
-    public OutsideMethodVisitor(Type clazz) {
-        super(clazz);
+public class ClassLevelMethodCallVisitor extends CalledMethodsVisitor {
+
+    public ClassLevelMethodCallVisitor(Map<String, Method> methodCache, Neo4jServiceFactory methodService) {
+        super(methodCache, methodService);
     }
 
     @Override

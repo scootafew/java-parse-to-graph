@@ -35,7 +35,7 @@ public class ArtifactAnalyser {
 
     public void analyseArtifact(Artifact artifact) throws JavaParseToGraphException {
         logger.info("Processing artifact {}", artifact.getFullyQualifiedName());
-        // Check if repository has already been processed
+        // Check if artifact has already been processed
         Neo4jServiceUtils neo4jService = new Neo4jServiceUtils();
         neo4jService.tryToBeginProcessing(Artifact.class, artifact);
 

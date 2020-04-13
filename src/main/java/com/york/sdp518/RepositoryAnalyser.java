@@ -6,7 +6,6 @@ import com.york.sdp518.domain.Repository;
 import com.york.sdp518.exception.AlreadyProcessedException;
 import com.york.sdp518.exception.DependencyManagementServiceException;
 import com.york.sdp518.exception.JavaParseToGraphException;
-import com.york.sdp518.exception.PartialProcessingFailureException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.VCSClient;
 import com.york.sdp518.service.impl.MavenDependencyManagementService;

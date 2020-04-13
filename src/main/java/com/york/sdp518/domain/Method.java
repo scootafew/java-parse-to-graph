@@ -13,7 +13,7 @@ import java.util.Set;
 public class Method extends Entity {
 
     @Relationship(type = "CALLS")
-    Set<Call> methodCalls = new HashSet<>();
+    Set<Method> methodCalls = new HashSet<>();
 
     boolean declarationDiscovered = false;
 
@@ -27,12 +27,16 @@ public class Method extends Entity {
         setName(name);
     }
 
-    public void addAllMethodCalls(Collection<Call> calls) {
-        methodCalls.addAll(calls);
+    public void addAllMethodCalls(Collection<Method> methods) {
+        methodCalls.addAll(methods);
     }
 
     public void setLineNumber(int lineNumber) {
         this.lineNumber = lineNumber;
+    }
+
+    public int getLineNumber() {
+        return lineNumber;
     }
 
     public void setDiscovered() {
@@ -49,6 +53,7 @@ public class Method extends Entity {
 
         return new EqualsBuilder()
                 .appendSuper(super.equals(o))
+                .append(declarationDiscovered, method.declarationDiscovered)
                 .isEquals();
     }
 
@@ -56,6 +61,7 @@ public class Method extends Entity {
     public int hashCode() {
         return new HashCodeBuilder(57, 11)
                 .appendSuper(super.hashCode())
+                .append(declarationDiscovered)
                 .toHashCode();
     }
 }
