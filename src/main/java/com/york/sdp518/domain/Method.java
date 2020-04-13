@@ -22,7 +22,6 @@ public class Method extends Annotatable {
     public Method() { }
 
     public Method(String fullyQualifiedSignature, String name) {
-        this();
         setFullyQualifiedName(fullyQualifiedSignature);
         setName(name);
     }

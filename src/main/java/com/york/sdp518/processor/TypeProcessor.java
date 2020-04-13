@@ -20,8 +20,10 @@ import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtElement;
 import spoon.reflect.declaration.CtType;
 import spoon.reflect.declaration.CtTypeInformation;
+import spoon.reflect.declaration.ModifierKind;
 
 import java.util.Collection;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +44,8 @@ public class TypeProcessor {
 
             Type type = createType(ctType);
 
+            Set<String> modifiers = ctType.getModifiers().stream().map(ModifierKind::toString).collect(Collectors.toSet());
+            type.addAllModifiers(modifiers);
             type.addAllAnnotations(getAnnotations(ctType));
 
             // Process declarations (includes method calls in declarations)

@@ -19,18 +19,17 @@ public class Type extends Annotatable {
     Map<String, Method> declaredMethodMap = new HashMap<>();
 
     @Relationship(type = "DECLARES")
-    Collection<Method> declaredMethods;
+    Collection<Method> declaredMethods = new HashSet<>();
 
     @Relationship(type = "CALLS")
-    Set<Method> calledMethods;
+    Set<Method> calledMethods = new HashSet<>();
+
+    Set<String> modifiers = new HashSet<>();
 
     public Type() {
-        declaredMethods = new HashSet<>();
-        calledMethods = new HashSet<>();
     }
 
     public Type(String fullyQualifiedName, String name) {
-        this();
         setFullyQualifiedName(fullyQualifiedName);
         setName(name);
     }
@@ -42,6 +41,10 @@ public class Type extends Annotatable {
 
     public void addAllCalledMethods(Collection<Method> calls) {
         calledMethods.addAll(calls);
+    }
+
+    public void addAllModifiers(Collection<String> modifiers) {
+        this.modifiers.addAll(modifiers);
     }
 
     public Method getDeclaredMethod(String fqn) {
