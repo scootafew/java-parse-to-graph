@@ -39,6 +39,7 @@ public class MethodVisitor extends CtScanner {
     }
 
     <K> String getQualifiedSignature(CtExecutableReference<K> reference) {
+//        return reference.getType().getQualifiedName();
         CtTypeReference<?> dt = reference.getDeclaringType();
         if (dt != null) {
             String qualifier = reference.getDeclaringType().getQualifiedName();

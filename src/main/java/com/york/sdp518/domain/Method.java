@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @NodeEntity
-public class Method extends Entity {
+public class Method extends Annotatable {
 
     @Relationship(type = "CALLS")
     Set<Method> methodCalls = new HashSet<>();
@@ -53,7 +53,6 @@ public class Method extends Entity {
 
         return new EqualsBuilder()
                 .appendSuper(super.equals(o))
-                .append(declarationDiscovered, method.declarationDiscovered)
                 .isEquals();
     }
 
@@ -61,7 +60,6 @@ public class Method extends Entity {
     public int hashCode() {
         return new HashCodeBuilder(57, 11)
                 .appendSuper(super.hashCode())
-                .append(declarationDiscovered)
                 .toHashCode();
     }
 }
