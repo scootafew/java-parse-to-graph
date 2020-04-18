@@ -24,7 +24,7 @@ public class GitVCSClient implements VCSClient {
 
     private static final Logger logger = LoggerFactory.getLogger(GitVCSClient.class);
 
-    private static final String CLONE_PATH = "../clones";
+    private static final String CLONE_PATH = "../clones/github";
 
     // TODO Remove - only needed for cloning private repo in test
 //    private static final String GIT_USERNAME = Utils.getPropertyOrEnv("GIT_USERNAME", true);
