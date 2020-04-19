@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @NodeEntity
-public class Method extends Annotatable {
+public class Method extends AnnotatableEntity {
 
     @Relationship(type = "CALLS")
     Set<Method> methodCalls = new HashSet<>();

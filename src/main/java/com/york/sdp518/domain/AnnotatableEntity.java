@@ -6,16 +6,16 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class Annotatable extends Entity {
+public abstract class AnnotatableEntity extends Entity {
 
     @Relationship(type = "ANNOTATES", direction = Relationship.INCOMING)
     Set<Annotation> annotations = new HashSet<>();
 
-    public Annotatable() {
+    public AnnotatableEntity() {
         super();
     }
 
-    public Annotatable(String fullyQualifiedName, String name) {
+    public AnnotatableEntity(String fullyQualifiedName, String name) {
         super(fullyQualifiedName, name);
     }
 

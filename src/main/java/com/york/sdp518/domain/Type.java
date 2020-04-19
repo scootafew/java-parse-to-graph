@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 @NodeEntity
-public class Type extends Annotatable {
+public class Type extends AnnotatableEntity {
 
     @Transient
     Map<String, Method> declaredMethodMap = new HashMap<>();
