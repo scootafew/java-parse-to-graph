@@ -13,7 +13,7 @@ import java.util.Set;
 public class Repository extends ProcessableEntity {
 
     @Relationship(type = "DECLARES")
-    private Set<Artifact> artifacts = new HashSet<>();
+    Set<Artifact> artifacts = new HashSet<>();
 
     public Repository() {
         super();

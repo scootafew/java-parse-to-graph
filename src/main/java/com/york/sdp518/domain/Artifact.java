@@ -5,9 +5,9 @@ import org.neo4j.ogm.annotation.NodeEntity;
 @NodeEntity
 public class Artifact extends ProcessableEntity {
 
-    private String groupId;
-    private String artifactId;
-    private String version;
+    String groupId;
+    String artifactId;
+    String version;
 
     public Artifact() {
         super();

@@ -9,7 +9,7 @@ public abstract class ProcessableEntity extends Entity {
      * Currently nodes could get stuck IN_PROGRESS, possible solution is to add TTL
      * https://neo4j.com/docs/labs/apoc/current/graph-updates/ttl/
      */
-    private ProcessingState processingState = ProcessingState.NOT_PROCESSED;
+    ProcessingState processingState = ProcessingState.NOT_PROCESSED;
 
     ProcessableEntity() {
         super();
