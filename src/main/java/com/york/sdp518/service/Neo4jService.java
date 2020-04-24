@@ -1,5 +1,7 @@
 package com.york.sdp518.service;
 
+import org.neo4j.ogm.transaction.Transaction;
+
 import java.util.Optional;
 
 public interface Neo4jService<T> {
@@ -9,5 +11,9 @@ public interface Neo4jService<T> {
 
     void delete(String id);
 
-    T createOrUpdate(T object);
+    void createOrUpdate(T object);
+
+    void createOrUpdate(T object, int depth);
+
+    Transaction beginTransaction();
 }

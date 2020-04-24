@@ -2,6 +2,8 @@ package com.york.sdp518.processor;
 
 import com.york.sdp518.Neo4jSessionFactory;
 import com.york.sdp518.domain.Package;
+import com.york.sdp518.service.Neo4jService;
+import com.york.sdp518.service.impl.Neo4jServiceFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.transaction.Transaction;
@@ -12,6 +14,8 @@ import org.springframework.stereotype.Component;
 import spoon.reflect.declaration.CtPackage;
 
 import java.util.Collection;
+import java.util.Optional;
+import java.util.function.Function;
 
 @Component
 public class PackageProcessor {
@@ -19,10 +23,12 @@ public class PackageProcessor {
     private static final Logger logger = LoggerFactory.getLogger(PackageProcessor.class);
 
     private TypeProcessor typeProcessor;
+    private Neo4jService<Package> neo4jService;
 
     @Autowired
-    public PackageProcessor(TypeProcessor typeProcessor) {
+    public PackageProcessor(TypeProcessor typeProcessor, Neo4jServiceFactory neo4jServiceFactory) {
         this.typeProcessor = typeProcessor;
+        this.neo4jService = neo4jServiceFactory.getServiceForClass(Package.class);
     }
 
     public void processPackages(Collection<CtPackage> packages) {
@@ -39,31 +45,30 @@ public class PackageProcessor {
     }
 
     private void createPackageIfNotExists(String qualifiedPackageName) {
-        Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
-        try (Transaction tx = session.beginTransaction()) {
-            Package packageForCreation = getPackageToCreate(qualifiedPackageName, session);
+        try (Transaction tx = neo4jService.beginTransaction()) {
+            Package packageForCreation = getPackageToCreate(qualifiedPackageName);
 
             // Don't save unnecessarily (if package already existed)
             if (!packageForCreation.getFullyQualifiedName().equals(qualifiedPackageName)) {
-                session.save(packageForCreation);
+                neo4jService.createOrUpdate(packageForCreation);
                 tx.commit();
             }
         }
     }
 
-    private Package getPackageToCreate(String qualifiedPackageName, Session session) {
-        Package currentPackage = session.load(Package.class, qualifiedPackageName);
-        if (currentPackage != null) {
-            return currentPackage; // Package already exists
+    private Package getPackageToCreate(String qualifiedPackageName) {
+        Optional<Package> currentPackage = neo4jService.find(qualifiedPackageName);
+        if (currentPackage.isPresent()) {
+            return currentPackage.get(); // Package already exists
         } else {
             String parentPackageQualifiedName = getParentPackageQualifiedName(qualifiedPackageName);
             String currentPackageName = getCurrentPackageQualifiedName(qualifiedPackageName);
-            currentPackage = new Package(qualifiedPackageName, currentPackageName);
+            Package newPackage = new Package(qualifiedPackageName, currentPackageName);
             if (parentPackageQualifiedName.isEmpty()) {
-                return currentPackage; // return new Package as has no parent
+                return newPackage; // return new Package as has no parent
             } else {
-                Package parent = getPackageToCreate(parentPackageQualifiedName, session);
-                parent.addPackage(currentPackage);
+                Package parent = getPackageToCreate(parentPackageQualifiedName);
+                parent.addPackage(newPackage);
                 return parent;
             }
         }

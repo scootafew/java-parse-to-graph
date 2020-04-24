@@ -6,7 +6,8 @@ import com.york.sdp518.exception.BuildClasspathException;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.impl.MavenDependencyManagementService;
-import com.york.sdp518.service.impl.Neo4jServiceUtils;
+import com.york.sdp518.service.impl.Neo4jServiceFactory;
+import com.york.sdp518.service.impl.ProcessableNeo4jService;
 import com.york.sdp518.util.SpoonedArtifact;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,11 +23,14 @@ public class ArtifactAnalyser {
 
     private MavenDependencyManagementService mavenService;
     private SpoonProcessor spoonProcessor;
+    private ProcessableNeo4jService<Artifact> neo4jService;
 
     @Autowired
-    public ArtifactAnalyser(MavenDependencyManagementService mavenService, SpoonProcessor spoonProcessor) {
+    public ArtifactAnalyser(MavenDependencyManagementService mavenService, SpoonProcessor spoonProcessor,
+                            Neo4jServiceFactory neo4jServiceFactory) {
         this.mavenService = mavenService;
         this.spoonProcessor = spoonProcessor;
+        this.neo4jService = neo4jServiceFactory.getServiceForProcessableEntity(Artifact.class);
     }
 
     public void analyseArtifact(String artifactFqn) throws JavaParseToGraphException {
@@ -36,8 +40,7 @@ public class ArtifactAnalyser {
     public void analyseArtifact(Artifact artifact) throws JavaParseToGraphException {
         logger.info("Processing artifact {}", artifact.getFullyQualifiedName());
         // Check if artifact has already been processed
-        Neo4jServiceUtils neo4jService = new Neo4jServiceUtils();
-        neo4jService.tryToBeginProcessing(Artifact.class, artifact);
+        neo4jService.tryToBeginProcessing(artifact);
 
         // if no AlreadyProcessedException thrown, continue
         try {
@@ -47,7 +50,7 @@ public class ArtifactAnalyser {
             artifact.setProcessingState(ProcessingState.FAILED);
             throw e;
         } finally {
-            Neo4jSessionFactory.getInstance().getNeo4jSession().save(artifact);
+            neo4jService.createOrUpdate(artifact);
         }
     }
 

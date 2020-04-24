@@ -17,10 +17,13 @@ public class Main implements CommandLineRunner  {
 
     private RepositoryAnalyser repositoryAnalyser;
     private ArtifactAnalyser artifactAnalyser;
+    private Neo4jSessionFactory neo4jSessionFactory;
 
-    public Main(RepositoryAnalyser repositoryAnalyser, ArtifactAnalyser artifactAnalyser) {
+    public Main(RepositoryAnalyser repositoryAnalyser, ArtifactAnalyser artifactAnalyser,
+                Neo4jSessionFactory neo4jSessionFactory) {
         this.repositoryAnalyser = repositoryAnalyser;
         this.artifactAnalyser = artifactAnalyser;
+        this.neo4jSessionFactory = neo4jSessionFactory;
     }
 
 
@@ -58,7 +61,7 @@ public class Main implements CommandLineRunner  {
                 throw new UnsupportedOperationException("Currently can only process Git repositories or Maven artifacts");
             }
         } finally {
-            Neo4jSessionFactory.getInstance().close();
+            neo4jSessionFactory.close();
         }
     }
 

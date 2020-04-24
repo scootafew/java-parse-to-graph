@@ -9,7 +9,8 @@ import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.VCSClient;
 import com.york.sdp518.service.impl.MavenDependencyManagementService;
-import com.york.sdp518.service.impl.Neo4jServiceUtils;
+import com.york.sdp518.service.impl.Neo4jServiceFactory;
+import com.york.sdp518.service.impl.ProcessableNeo4jService;
 import com.york.sdp518.util.OutputUtils;
 import com.york.sdp518.util.SpoonedRepository;
 import com.york.sdp518.util.Packaging;
@@ -38,21 +39,23 @@ public class RepositoryAnalyser {
     private MavenDependencyManagementService mavenService;
     private ArtifactAnalyser artifactAnalyser;
     private SpoonProcessor spoonProcessor;
+    private ProcessableNeo4jService<Repository> neo4jService;
 
     @Autowired
     public RepositoryAnalyser(VCSClient vcsClient, MavenDependencyManagementService mavenService,
-                              ArtifactAnalyser artifactAnalyser, SpoonProcessor spoonProcessor) {
+                              ArtifactAnalyser artifactAnalyser, SpoonProcessor spoonProcessor,
+                              Neo4jServiceFactory neo4jServiceFactory) {
         this.vcsClient = vcsClient;
         this.mavenService = mavenService;
         this.artifactAnalyser = artifactAnalyser;
         this.spoonProcessor = spoonProcessor;
+        this.neo4jService = neo4jServiceFactory.getServiceForProcessableEntity(Repository.class);
     }
 
     public void analyseRepository(String uri) throws JavaParseToGraphException {
         // TODO Check version as well, might want to use flag instead and create repo first in db to account for partial parsing
         // Check if repository has already been processed
-        Neo4jServiceUtils neo4jService = new Neo4jServiceUtils();
-        Repository repo = neo4jService.tryToBeginProcessing(Repository.class, new Repository(uri));
+        Repository repo = neo4jService.tryToBeginProcessing(new Repository(uri));
 
         // if no AlreadyProcessedException thrown, continue
         try {
@@ -62,7 +65,7 @@ public class RepositoryAnalyser {
             repo.setProcessingState(ProcessingState.FAILED);
             throw e;
         } finally {
-            Neo4jSessionFactory.getInstance().getNeo4jSession().save(repo);
+            neo4jService.createOrUpdate(repo);
         }
     }
 
@@ -101,8 +104,13 @@ public class RepositoryAnalyser {
         // Process with spoon
         spoonProcessor.process(spoonedRepository);
 
-        spoonedRepository.getArtifacts().forEach(artifact -> artifact.setProcessingState(ProcessingState.COMPLETED));
-        repository.addAllArtifacts(spoonedRepository.getArtifacts());
+        spoonedRepository.getAllModules().stream()
+                .filter(pomModel -> !pomModel.getPackaging().equals(Packaging.POM))
+                .map(PomModel::asArtifact)
+                .forEach(artifact -> {
+                    artifact.setProcessingState(ProcessingState.COMPLETED);
+                    repository.addArtifact(artifact);
+                });
     }
 
     private void processAsLibrary(SpoonedRepository spoonedRepository, Repository repository) throws JavaParseToGraphException {

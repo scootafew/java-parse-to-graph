@@ -49,13 +49,15 @@ public class TypeProcessor {
             type.addAllAnnotations(getAnnotations(ctType));
 
             // Process declarations (includes method calls in declarations)
-            type.addAllDeclaredMethods(getDeclaredMethods(ctType));
+            visitTypeContents(ctType, type);
 
             // TODO should be one atomic transaction?
-            Session session = Neo4jSessionFactory.getInstance().getNeo4jSession();
-            Package currentPackage = session.load(Package.class, ctType.getPackage().getQualifiedName());
-            currentPackage.addClass(type);
-            session.save(currentPackage);
+            Neo4jService<Package> packageService = neo4jServiceFactory.getServiceForClass(Package.class);
+            packageService.find(ctType.getPackage().getQualifiedName()).ifPresent(currentPackage -> {
+                currentPackage.addClass(type);
+                packageService.createOrUpdate(currentPackage);
+            });
+
 
             // Process class level method calls
             ClassLevelMethodCallVisitor classLevelVisitor = new ClassLevelMethodCallVisitor(type.getDeclaredMethodMap(), neo4jServiceFactory);
@@ -63,7 +65,7 @@ public class TypeProcessor {
             Collection<Method> calls = classLevelVisitor.getCalledMethods();
             type.addAllCalledMethods(calls);
 
-            session.save(type);
+            neo4jServiceFactory.getServiceForClass(Type.class).createOrUpdate(type);
         }
     }
 
@@ -86,10 +88,10 @@ public class TypeProcessor {
         return type;
     }
 
-    private Collection<Method> getDeclaredMethods(CtType<?> ctType) {
+    private void visitTypeContents(CtType<?> ctType, Type type) {
         DeclaredMethodVisitor declaredMethodVisitor = new DeclaredMethodVisitor(neo4jServiceFactory);
         ctType.accept(declaredMethodVisitor);
-        return declaredMethodVisitor.getDeclarations();
+        type.addAllDeclaredMethods(declaredMethodVisitor.getDeclarations());
     }
 
     private Collection<Annotation> getAnnotations(CtElement element) {
