@@ -35,6 +35,10 @@ public class Repository extends ProcessableEntity {
         this.artifacts.addAll(Collections.singleton(artifact));
     }
 
+    public Set<Artifact> getArtifacts() {
+        return artifacts;
+    }
+
     public String getUrl() {
         return super.getFullyQualifiedName();
     }

@@ -14,14 +14,14 @@ public class Artifact extends ProcessableEntity {
     }
 
     public Artifact(String fullyQualifiedName) {
-        super(fullyQualifiedName, getArtifactIdFromArtifact(fullyQualifiedName));
-        this.groupId = getGroupIdFromArtifact(fullyQualifiedName);
-        this.artifactId = getArtifactIdFromArtifact(fullyQualifiedName);
-        this.version = getVersionFromArtifact(fullyQualifiedName);
+        this(fullyQualifiedName, getArtifactIdFromArtifact(fullyQualifiedName));
     }
 
     public Artifact(String fullyQualifiedName, String name) {
         super(fullyQualifiedName, name);
+        this.groupId = getGroupIdFromArtifact(fullyQualifiedName);
+        this.artifactId = name;
+        this.version = getVersionFromArtifact(fullyQualifiedName);
     }
 
     public String getGroupId() {
