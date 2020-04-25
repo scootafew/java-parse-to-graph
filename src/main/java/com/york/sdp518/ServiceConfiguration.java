@@ -4,12 +4,10 @@ import com.york.sdp518.service.MavenInvoker;
 import com.york.sdp518.util.Utils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
 import java.io.File;
 
 @Configuration
-@Profile("prod")
 public class ServiceConfiguration {
 
     private static final String MAVEN_HOME_ENV_VAR = "MAVEN_HOME";
