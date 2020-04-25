@@ -1,11 +1,9 @@
 package com.york.sdp518.processor;
 
-import com.york.sdp518.Neo4jSessionFactory;
 import com.york.sdp518.domain.Package;
 import com.york.sdp518.service.Neo4jService;
 import com.york.sdp518.service.impl.Neo4jServiceFactory;
 import org.apache.commons.lang3.StringUtils;
-import org.neo4j.ogm.session.Session;
 import org.neo4j.ogm.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +13,6 @@ import spoon.reflect.declaration.CtPackage;
 
 import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 
 @Component
 public class PackageProcessor {
