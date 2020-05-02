@@ -90,12 +90,12 @@ public class RepositoryAnalyser {
 
     }
 
-    private void processAsRepository(SpoonedRepository spoonedRepository, Repository repository) throws JavaParseToGraphException {
+    private void processAsRepository(SpoonedRepository spoonedRepository, Repository repository) {
         logger.info("Processing project {} as repository", spoonedRepository.getProjectName());
-        if (spoonedRepository.classpathNotBuiltSuccessfully()) {
-            mavenService.build(spoonedRepository.getRootPomFile(), false);
-            spoonedRepository.rebuildClasspath();
-        }
+//        if (spoonedRepository.classpathNotBuiltSuccessfully()) {
+//            mavenService.build(spoonedRepository.getRootPomFile(), false);
+//            spoonedRepository.rebuildClasspath();
+//        }
 
         // print discovered artifacts and dependencies
         spoonedRepository.printArtifacts();
@@ -113,10 +113,8 @@ public class RepositoryAnalyser {
                 });
     }
 
-    private void processAsLibrary(SpoonedRepository spoonedRepository, Repository repository) throws JavaParseToGraphException {
+    private void processAsLibrary(SpoonedRepository spoonedRepository, Repository repository) {
         logger.info("Processing project {} as library", spoonedRepository.getProjectName());
-
-        Set<PomModel> jarPackagedArtifacts = spoonedRepository.getAllModules(Collections.singletonList(Packaging.JAR));
 
         Set<Artifact> artifactsToProcess = spoonedRepository.getAllModules(Collections.singletonList(Packaging.JAR))
                 .stream()

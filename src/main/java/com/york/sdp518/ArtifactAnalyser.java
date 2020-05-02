@@ -2,7 +2,6 @@ package com.york.sdp518;
 
 import com.york.sdp518.domain.Artifact;
 import com.york.sdp518.domain.ProcessingState;
-import com.york.sdp518.exception.BuildClasspathException;
 import com.york.sdp518.exception.JavaParseToGraphException;
 import com.york.sdp518.processor.SpoonProcessor;
 import com.york.sdp518.service.impl.MavenDependencyManagementService;
@@ -58,10 +57,10 @@ public class ArtifactAnalyser {
         Path sourcesPath = mavenService.getSources(artifact);
 
         SpoonedArtifact spoonedArtifact = new SpoonedArtifact(sourcesPath, artifact, mavenService);
-        if (spoonedArtifact.classpathNotBuiltSuccessfully()) {
-            logger.error("Could not build classpath, exiting...");
-            throw new BuildClasspathException("Could not build classpath for artifact");
-        }
+//        if (spoonedArtifact.classpathNotBuiltSuccessfully()) {
+//            logger.error("Could not build classpath, exiting...");
+//            throw new BuildClasspathException("Could not build classpath for artifact");
+//        }
 
         // print found dependencies
         spoonedArtifact.printArtifact();
