@@ -52,7 +52,7 @@ public class MavenInvoker extends DefaultInvoker {
         try {
             InvocationResult invocationResult = execute(request);
             if (invocationResult.getExitCode() != 0) {
-                String msg = "Maven invocation exception";
+                String msg = "Maven invocation exception when executing goal(s): " + request.getGoals().toString();
                 if (invocationResult.getExecutionException() != null) {
                     msg = invocationResult.getExecutionException().getMessage();
                 }
