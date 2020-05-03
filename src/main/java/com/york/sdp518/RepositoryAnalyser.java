@@ -97,8 +97,7 @@ public class RepositoryAnalyser {
 //            spoonedRepository.rebuildClasspath();
 //        }
 
-        // print discovered artifacts and dependencies
-        spoonedRepository.printArtifacts();
+        // print discovered dependencies (not artifacts as repository is not a library therefore is not reused)
         spoonedRepository.printDependencies();
 
         // Process with spoon
