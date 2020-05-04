@@ -1,6 +1,5 @@
 package com.york.sdp518.processor;
 
-import com.york.sdp518.Neo4jSessionFactory;
 import com.york.sdp518.domain.Annotation;
 import com.york.sdp518.domain.Class;
 import com.york.sdp518.domain.Enum;
@@ -12,7 +11,6 @@ import com.york.sdp518.service.Neo4jService;
 import com.york.sdp518.service.impl.Neo4jServiceFactory;
 import com.york.sdp518.spoonvisitors.DeclaredMethodVisitor;
 import com.york.sdp518.spoonvisitors.ClassLevelMethodCallVisitor;
-import org.neo4j.ogm.session.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -120,7 +118,7 @@ public class TypeProcessor {
         Class clazz = new Class(ctType.getQualifiedName(), ctType.getSimpleName());
         clazz.setAbstract(ctType.isAbstract());
         clazz.addAllInterfaces(getSuperInterfaces(ctType));
-        if (ctType.getSuperclass() != null) {
+        if (ctType.getSuperclass() != null && ctType.getSuperclass().getTypeDeclaration() != null) {
             clazz.setSuperType(createType(ctType.getSuperclass().getTypeDeclaration()));
         }
         return clazz;
