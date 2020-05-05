@@ -56,7 +56,7 @@ public class PackageProcessor {
     private Package getPackageToCreate(String qualifiedPackageName) {
         Optional<Package> currentPackage = neo4jService.find(qualifiedPackageName);
         if (currentPackage.isPresent()) {
-            return currentPackage.get(); // Package already exists
+            return currentPackage.get(); // Package already exists (therefore all parents do too)
         } else {
             String parentPackageQualifiedName = getParentPackageQualifiedName(qualifiedPackageName);
             String currentPackageName = getCurrentPackageQualifiedName(qualifiedPackageName);
