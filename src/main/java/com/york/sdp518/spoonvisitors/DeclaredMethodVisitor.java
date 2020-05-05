@@ -40,7 +40,9 @@ public class DeclaredMethodVisitor extends MethodVisitor {
 
         Method declaredMethod = declarations.getOrDefault(fullyQualifiedSignature, getOrCreateMethod(method.getReference()));
         declaredMethod.setDiscovered();
-        declaredMethod.setLineNumber(method.getPosition().getLine());
+        if (method.getPosition().isValidPosition()) {
+            declaredMethod.setLineNumber(method.getPosition().getLine());
+        }
 //        System.out.println("\u001B[31m" + "Method: " + declaredMethod.getFullyQualifiedName() + ", Line: " + method.getPosition().getLine() +  "\u001B[0m");
 
         // Visit method calls in declaration
