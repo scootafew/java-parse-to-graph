@@ -3,8 +3,6 @@ package com.york.sdp518.util;
 import com.york.sdp518.exception.PomFileException;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -14,8 +12,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class MavenProject {
-
-    private static final Logger logger = LoggerFactory.getLogger(MavenProject.class);
 
     private Path projectDirectory;
     private PomModel rootPomModel;

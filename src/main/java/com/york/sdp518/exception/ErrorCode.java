@@ -5,7 +5,8 @@ public enum ErrorCode {
     VCS(10, "Error cloning from VCS"),
     MAVEN_METADATA(10, "Could not retrieve maven metadata"),
     BUILD_CLASSPATH(11, "Could not build classpath"),
-    MAVEN_INVOCATION(12, "Error invoking maven plugin");
+    MAVEN_INVOCATION(12, "Error invoking maven plugin"),
+    POM_FILE(13, "Could not find or read POM file");
 
     private final int code;
     private final String description;

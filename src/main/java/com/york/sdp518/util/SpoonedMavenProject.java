@@ -36,7 +36,6 @@ public abstract class SpoonedMavenProject extends MavenProject {
         this.depManagementService = depManagementService;
         this.launcher = new MavenLauncher(projectDirectory.toString(), MavenLauncher.SOURCE_TYPE.APP_SOURCE);
         this.launcher.getEnvironment().setComplianceLevel(11);  // Max currently supported by Spoon
-        // launcher.getEnvironment().setLevel(Level.INFO.name());
         this.rootSpoonPom = launcher.getPomFile();
         this.classpathBuiltSuccessfully = checkClasspathBuiltSuccessfully();
     }

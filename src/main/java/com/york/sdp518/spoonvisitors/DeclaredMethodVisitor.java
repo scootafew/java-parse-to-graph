@@ -43,7 +43,6 @@ public class DeclaredMethodVisitor extends MethodVisitor {
         if (method.getPosition().isValidPosition()) {
             declaredMethod.setLineNumber(method.getPosition().getLine());
         }
-//        System.out.println("\u001B[31m" + "Method: " + declaredMethod.getFullyQualifiedName() + ", Line: " + method.getPosition().getLine() +  "\u001B[0m");
 
         // Visit method calls in declaration
         declaredMethod.addAllMethodCalls(getMethodCalls(method));
@@ -62,7 +61,6 @@ public class DeclaredMethodVisitor extends MethodVisitor {
 
         Constructor declaredConstructor = (Constructor) declarations.getOrDefault(fullyQualifiedSignature, getOrCreateConstructor(constructor.getReference()));
         declaredConstructor.setDiscovered();
-//        System.out.println("\u001B[31m" + "Constructor: " + declaredConstructor.getFullyQualifiedName() +  "\u001B[0m");
 
         declaredConstructor.addAllMethodCalls(getMethodCalls(constructor));
         declaredConstructor.addAllAnnotations(getAnnotations(constructor));

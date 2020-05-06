@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
-import java.util.Scanner;
 
 public abstract class ProcessableNeo4jService<T extends ProcessableEntity> extends GenericNeo4jService<T> {
 
@@ -33,7 +32,6 @@ public abstract class ProcessableNeo4jService<T extends ProcessableEntity> exten
 
             if (item.getProcessingState().equals(ProcessingState.NOT_PROCESSED)) {
                 item.setProcessingState(ProcessingState.IN_PROGRESS);
-//                promptEnterKey();
                 neo4jSession.save(item);
                 tx.commit();
             } else {
@@ -42,12 +40,6 @@ public abstract class ProcessableNeo4jService<T extends ProcessableEntity> exten
             }
         }
         return item;
-    }
-
-    public void promptEnterKey(){
-        System.out.println("Press \"ENTER\" to continue...");
-        Scanner scanner = new Scanner(System.in);
-        scanner.nextLine();
     }
 
 }

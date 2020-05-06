@@ -8,8 +8,6 @@ import com.york.sdp518.exception.PomFileException;
 import com.york.sdp518.service.MavenInvoker;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.shared.invoker.InvocationOutputHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -26,8 +24,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class MavenPluginService {
-
-    private static final Logger logger = LoggerFactory.getLogger(MavenPluginService.class);
 
     private MavenInvoker invoker;
 
@@ -111,7 +107,6 @@ public class MavenPluginService {
         Path jarPath = destPath.resolve(sourcesFile);
 
         refactorToExpectedStructure(destPath, pomPath, jarPath);
-//        setVersion(dest.resolve("pom.xml").toFile(), artifact.getVersion());
         return destPath;
     }
 

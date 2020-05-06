@@ -43,13 +43,9 @@ public class PackageProcessor {
 
     private void createPackageIfNotExists(String qualifiedPackageName) {
         try (Transaction tx = neo4jService.beginTransaction()) {
-            Package packageForCreation = getPackageToCreate(qualifiedPackageName);
-
-            // Don't save unnecessarily (if package already existed)
-            if (!packageForCreation.getFullyQualifiedName().equals(qualifiedPackageName)) {
-                neo4jService.createOrUpdate(packageForCreation);
-                tx.commit();
-            }
+            Package pack = getPackageToCreate(qualifiedPackageName);
+            logger.debug("Created package {} in database", pack.getFullyQualifiedName());
+            tx.commit();
         }
     }
 
@@ -62,12 +58,13 @@ public class PackageProcessor {
             String currentPackageName = getCurrentPackageQualifiedName(qualifiedPackageName);
             Package newPackage = new Package(qualifiedPackageName, currentPackageName);
             if (parentPackageQualifiedName.isEmpty()) {
-                return newPackage; // return new Package as has no parent
+                neo4jService.createOrUpdate(newPackage); // just create as has no parent
             } else {
                 Package parent = getPackageToCreate(parentPackageQualifiedName);
                 parent.addPackage(newPackage);
-                return parent;
+                neo4jService.createOrUpdate(parent);
             }
+            return newPackage;
         }
     }
 

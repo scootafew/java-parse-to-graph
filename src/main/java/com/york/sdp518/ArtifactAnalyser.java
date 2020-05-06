@@ -57,10 +57,6 @@ public class ArtifactAnalyser {
         Path sourcesPath = mavenService.getSources(artifact);
 
         SpoonedArtifact spoonedArtifact = new SpoonedArtifact(sourcesPath, artifact, mavenService);
-//        if (spoonedArtifact.classpathNotBuiltSuccessfully()) {
-//            logger.error("Could not build classpath, exiting...");
-//            throw new BuildClasspathException("Could not build classpath for artifact");
-//        }
 
         // print found dependencies
         spoonedArtifact.printArtifact();

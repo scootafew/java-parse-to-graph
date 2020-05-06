@@ -7,7 +7,6 @@ import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.TextProgressMonitor;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,10 +24,6 @@ public class GitVCSClient implements VCSClient {
     private static final Logger logger = LoggerFactory.getLogger(GitVCSClient.class);
 
     private static final String CLONE_PATH = "../clones/github";
-
-    // TODO Remove - only needed for cloning private repo in test
-//    private static final String GIT_USERNAME = Utils.getPropertyOrEnv("GIT_USERNAME", true);
-//    private static final String GIT_PASSWORD = Utils.getPropertyOrEnv("GIT_PASSWORD", true);
 
     // Monitor to print command progress to System.out
     private TextProgressMonitor consoleProgressMonitor = new TextProgressMonitor(new PrintWriter(System.out));
@@ -48,7 +43,6 @@ public class GitVCSClient implements VCSClient {
             Git.cloneRepository().setProgressMonitor(consoleProgressMonitor)
                     .setDirectory(destination)
                     .setURI(uri)
-//                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider(GIT_USERNAME, GIT_PASSWORD))
                     .call();
 
             URI projectPath = destination.toURI();

@@ -21,6 +21,15 @@ public class MethodVisitor extends CtScanner {
     Neo4jServiceFactory neo4jServiceFactory;
     Neo4jService<Method> methodService;
     Neo4jService<Constructor> constructorService;
+
+    /**
+     * This is used to share state between visitors. For example, a method declaration may have been discovered, but
+     * not yet persisted in the database. Therefore when a method call to it is discovered the process should be
+     * check if method exists in DB else -> check if method exists in cache else -> create method
+     * This is implemented in:
+     * @see #getOrCreateMethod(spoon.reflect.reference.CtExecutableReference)
+     * @see #getOrCreateConstructor(spoon.reflect.reference.CtExecutableReference)
+     */
     Map<String, Method> methodCache;
 
     MethodVisitor(Neo4jServiceFactory neo4jServiceFactory) {

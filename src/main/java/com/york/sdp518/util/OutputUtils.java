@@ -10,14 +10,6 @@ public final class OutputUtils {
     }
 
     public static void printDependency(Dependency dep) {
-//        String version = dep.getVersion();
-//        if (version.startsWith("${") && version.endsWith("}")) {
-//            if (version.equals("${project.version}")) {
-//                version = getRootPom().getVersion();
-//            } else {
-//                return;
-//            }
-//        }
         String fqn = String.join(":", dep.getGroupId(), dep.getArtifactId(), dep.getVersion());
         System.out.println("Found maven dependency: " + fqn);
     }

@@ -53,7 +53,6 @@ public class RepositoryAnalyser {
     }
 
     public void analyseRepository(String uri) throws JavaParseToGraphException {
-        // TODO Check version as well, might want to use flag instead and create repo first in db to account for partial parsing
         // Check if repository has already been processed
         Repository repo = neo4jService.tryToBeginProcessing(new Repository(uri));
 
@@ -92,10 +91,6 @@ public class RepositoryAnalyser {
 
     private void processAsRepository(SpoonedRepository spoonedRepository, Repository repository) {
         logger.info("Processing project {} as repository", spoonedRepository.getProjectName());
-//        if (spoonedRepository.classpathNotBuiltSuccessfully()) {
-//            mavenService.build(spoonedRepository.getRootPomFile(), false);
-//            spoonedRepository.rebuildClasspath();
-//        }
 
         // print discovered dependencies (not artifacts as repository is not a library therefore is not reused)
         spoonedRepository.printDependencies();
@@ -127,19 +122,6 @@ public class RepositoryAnalyser {
         artifactsToProcess.stream()
                 .map(this::processArtifact)
                 .forEach(repository::addArtifact);
-
-//        long failedCount = processedArtifacts.stream()
-//                .filter(artifact -> artifact.getProcessingState().equals(ProcessingState.FAILED))
-//                .count();
-//
-//        if (failedCount > 0) {
-//            if (failedCount == processedArtifacts.size()) {
-//                throw new JavaParseToGraphException("Processing failed for all artifacts in repository");
-//            }
-//            String message = String.format("Processing failed for %s/%s artifacts in repository",
-//                    failedCount, processedArtifacts.size());
-//            throw new PartialProcessingFailureException(message);
-//        }
     }
 
     private Optional<Artifact> getArtifactToProcess(PomModel pomModel) {
@@ -165,30 +147,4 @@ public class RepositoryAnalyser {
         return artifact;
     }
 
-//    @Deprecated
-//    private String checkVersionAlignment(Path projectPath) throws JavaParseToGraphException {
-//        File pomFile = projectPath.resolve("pom.xml").toFile();
-//        PomModel pomModel = new PomModel(pomFile);
-//
-//        String groupId = pomModel.getGroupId();
-//        String artifactId = pomModel.getArtifactId();
-//
-//        String localProjectVersion = mavenService.getProjectVersion(pomFile);
-//
-//        // If project is on maven central, modules may depend on each other so ensure versioning is consistent
-//        try {
-//            String latestVersion = mavenService.getLatestVersion(groupId, artifactId);
-//
-//            logger.info("Local project version is: {}, latest version is {}", localProjectVersion, latestVersion);
-//
-//            if (!localProjectVersion.equals(latestVersion)) {
-//                mavenService.setVersion(pomFile, latestVersion);
-//                return latestVersion;
-//            }
-//        } catch (MavenMetadataException e) {
-//            logger.info(e.getMessage());
-//        }
-//
-//        return localProjectVersion;
-//    }
 }

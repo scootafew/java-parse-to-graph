@@ -67,7 +67,6 @@ public class TypeProcessor {
         }
     }
 
-    // TODO Check recursive call effect
     private Type createType(CtType<?> ctType) {
         Type type;
         if (ctType.isClass()) {

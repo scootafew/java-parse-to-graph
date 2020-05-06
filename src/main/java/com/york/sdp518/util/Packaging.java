@@ -15,14 +15,14 @@ public enum Packaging {
     BUNDLE("bundle"),
     UNKNOWN("unknown");
 
-    private final String packaging;
+    private final String packagingString;
 
-    Packaging(String packaging){
-        this.packaging = packaging;
+    Packaging(String packagingString){
+        this.packagingString = packagingString;
     }
 
     public String getPackaging() {
-        return packaging;
+        return packagingString;
     }
 
     /**
@@ -39,7 +39,7 @@ public enum Packaging {
 
     @Override
     public String toString() {
-        return packaging;
+        return packagingString;
     }
 
 

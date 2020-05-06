@@ -3,9 +3,9 @@ package com.york.sdp518.processor;
 import com.york.sdp518.domain.Package;
 import com.york.sdp518.service.Neo4jService;
 import com.york.sdp518.service.impl.Neo4jServiceFactory;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -99,7 +99,7 @@ class PackageProcessorTest {
     void tearDown() {
     }
 
-    @Ignore
+    @Disabled
     @Test
     void processPackages() {
         // given
@@ -112,7 +112,7 @@ class PackageProcessorTest {
         then(typeProcessor).should(times(3)).processTypes(any());
     }
 
-    @Ignore
+    @Disabled
     @Test
     void getPackageToCreate() {
         // given

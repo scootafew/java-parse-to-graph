@@ -43,7 +43,7 @@ public class RepositoryAnalyserTest {
 
     private static final String REPOSITORY_URL = "https://github.com/test/mock-repository.git";
     private static final String REPOSITORY_NAME = "mock-repository";
-    private static final File MOCK_REPOSITORY_PATH = new File("./src/test/resources/clones/github/mock-repository");
+    private static final File MOCK_REPOSITORY_PATH = new File("./src/test/resources/clones/github/test/mock-repository");
 
     private static final String MOCK_GROUP_ID = "org.test.mock";
 

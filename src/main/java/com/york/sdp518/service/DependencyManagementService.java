@@ -13,10 +13,6 @@ public interface DependencyManagementService<T> {
 
     boolean isPublishedArtifact(String groupId, String artifactId) throws DependencyManagementServiceException;
 
-//    String getProjectVersion(File dependencyFile) throws DependencyManagementServiceException;
-//
-//    void setVersion(File dependencyFile, String version) throws DependencyManagementServiceException;
-
     void build(File dependencyFile, boolean runTests) throws DependencyManagementServiceException;
 
     Set<T> getDependencies(File dependencyFile) throws DependencyManagementServiceException;
