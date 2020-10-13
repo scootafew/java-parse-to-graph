@@ -23,7 +23,7 @@
 	</modules>
 
 	<properties>
-		<junit.version>4.12</junit.version>
+		<junit.version>4.13.1</junit.version>
 		<logback.version>1.2.2</logback.version>
 		<guava.version>21.0</guava.version>
 		<mockito.version>2.7.19</mockito.version>
